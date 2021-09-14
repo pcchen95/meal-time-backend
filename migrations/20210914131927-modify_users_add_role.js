@@ -1,20 +1,27 @@
-'use strict';
+"use strict";
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    queryInterface.addColumn(
-      'Users',
-      'role',
-      {
-        allowNull: false,
-        defaultValue: 'all',
-        type: Sequelize.ENUM('all', 'member', 'vendor', 'admin', 'suspended'), 
-      }
-    ),
+    await queryInterface.addColumn("Users", "role", {
+      allowNull: false,
+      defaultValue: "all",
+      type: Sequelize.ENUM("all", "member", "vendor", "admin", "suspended"),
+    });
+    await queryInterface.removeColumn("Users", "isAdmin");
+    await queryInterface.removeColumn("Users", "isVendor");
   },
 
   down: async (queryInterface, Sequelize) => {
-    queryInterface.removeColumn('Users', 'isAdmin'),
-    queryInterface.removeColumn('Users', 'isVendor'),
-  }
+    await queryInterface.removeColumn("Users", "role");
+    await queryInterface.addColumn("Users", "isAdmin", {
+      allowNull: false,
+      defaultValue: false,
+      type: Sequelize.BOOLEAN,
+    });
+    await queryInterface.addColumn("Users", "isVendor", {
+      allowNull: false,
+      defaultValue: false,
+      type: Sequelize.BOOLEAN,
+    });
+  },
 };
