@@ -1,5 +1,5 @@
-"use strict";
-const { Model } = require("sequelize");
+'use strict';
+const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Vendor extends Model {
     /**
@@ -9,22 +9,22 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       Vendor.belongsTo(models.User, {
-        foreignKey: "userId",
+        foreignKey: 'userId',
       });
       Vendor.belongsTo(models.VendorCategory, {
-        foreignKey: "categoryId",
+        foreignKey: 'categoryId',
       });
       Vendor.hasMany(models.Products, {
-        foreignKey: "vendorId",
+        foreignKey: 'vendorId',
       });
       Vendor.hasMany(models.OrderItems, {
-        foreignKey: "vendorId",
+        foreignKey: 'vendorId',
       });
       Vendor.hasMany(models.ReportMessages, {
-        foreignKey: "reportedVendorId",
+        foreignKey: 'reportedVendorId',
       });
       Vendor.hasOne(models.Messages, {
-        foreignKey: "vendorId",
+        foreignKey: 'vendorId',
       });
     }
   }
@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
       userId: DataTypes.INTEGER,
       vendorName: DataTypes.STRING,
       address: DataTypes.STRING,
-      position: DataTypes.GEOMETRY("POINT"),
+      position: DataTypes.GEOMETRY('POINT'),
       phone: DataTypes.STRING,
       avatarUrl: DataTypes.STRING,
       bannerUrl: DataTypes.STRING,
@@ -45,7 +45,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: "Vendor",
+      modelName: 'Vendor',
     }
   );
   return Vendor;
