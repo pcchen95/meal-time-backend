@@ -133,7 +133,6 @@ const userController = {
       });
     } catch (err) {
       req.flash('errMessage', err.toString());
-      return res.send('error 1: ' + err.toString());
       return next();
     }
 
@@ -141,7 +140,6 @@ const userController = {
       deleteImg(user.avatarURL, (err) => {
         if (err) {
           req.flash('errMessage', err.toString());
-          return res.send('error 3: ' + err.toString());
           return next();
         }
       });
@@ -149,7 +147,6 @@ const userController = {
       uploadImg(encodeImage, album, (err, link) => {
         if (err) {
           req.flash('errMessage', err.toString());
-          return res.send('error 4: ' + err.toString());
           return next();
         }
         user
@@ -160,7 +157,7 @@ const userController = {
             avatarURL: link,
           })
           .then(() => {
-            res.redirect('/user/profile');
+            res.redirect('/users/profile');
           });
       });
     } else {
@@ -171,7 +168,7 @@ const userController = {
           phone,
         })
         .then(() => {
-          res.redirect('/user/profile');
+          res.redirect('/users/profile');
         });
     }
   },

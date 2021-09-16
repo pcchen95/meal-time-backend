@@ -35,19 +35,19 @@ function redirectBack(req, res) {
   res.redirect('back');
 }
 
-app.get('/register', userController.register);
+app.get('/users/register', userController.register);
 app.post(
-  '/register',
+  '/users/register',
   upload.single('avatar'),
   userController.handleRegister,
   redirectBack
 );
-app.get('/login', userController.login);
-app.post('/login', userController.handleLogin, redirectBack);
-app.get('/logout', userController.logout);
+app.get('/users/login', userController.login);
+app.post('/users/login', userController.handleLogin, redirectBack);
+app.get('/users/logout', userController.logout);
 
-app.get('/user/profile', userController.update);
-app.post('/user/profile/:id', userController.handleUpdate, redirectBack);
+app.get('/users/profile', userController.update);
+app.post('/users/profile/:id', userController.handleUpdate, redirectBack);
 
 app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}`);
