@@ -1,7 +1,7 @@
-"use strict";
+'use strict';
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("Vendors", {
+    await queryInterface.createTable('Vendors', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -22,7 +22,7 @@ module.exports = {
       },
       position: {
         allowNull: false,
-        type: Sequelize.GEOMETRY("POINT"),
+        type: Sequelize.GEOMETRY('POINT'),
       },
       phone: {
         allowNull: false,
@@ -127,6 +127,6 @@ module.exports = {
     });
   },
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("Vendors");
+    await queryInterface.dropTable('Vendors');
   },
 };
