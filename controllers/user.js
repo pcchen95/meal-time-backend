@@ -7,8 +7,59 @@ const { User } = db;
 const album = '19dKauX';
 
 const userController = {
-  register: (req, res) => {
-    res.render('user/register');
+  getProfile: async (req, res, next) => {
+    let user;
+    try {
+      user = await User.findOne({
+        where: {
+          id: req.params.id,
+        },
+        attributes: [
+          'nickname',
+          'username',
+          'phone',
+          'email',
+          'avatarURL',
+          'role',
+        ],
+      });
+
+      return res.json({
+        ok: 1,
+        data: user,
+      });
+    } catch (err) {
+      return res.json({
+        ok: 0,
+        message: err.toString(),
+      });
+    }
+  },
+
+  getAllProfiles: async (req, res, next) => {
+    let users;
+    try {
+      users = await User.findAll({
+        attributes: [
+          'id',
+          'nickname',
+          'username',
+          'phone',
+          'email',
+          'avatarURL',
+          'role',
+        ],
+      });
+      return res.json({
+        ok: 1,
+        data: users,
+      });
+    } catch (err) {
+      return res.json({
+        ok: 0,
+        message: err.toString(),
+      });
+    }
   },
 
   handleRegister: (req, res, next) => {
@@ -16,69 +67,86 @@ const userController = {
     const avatar = req.file;
 
     if (!nickname || !username || !password || !email || !phone) {
-      req.flash('errMessage', '請填入完整資料');
-      return next();
+      return res.json({
+        ok: 0,
+        message: '請填入所有必填欄位',
+      });
     }
 
-    bcrypt.hash(password, saltRounds, (err, hash) => {
+    bcrypt.hash(password, saltRounds, async (err, hash) => {
       if (err) {
-        req.flash('errMessage', err.toString());
-        return next();
+        return res.json({
+          ok: 0,
+          message: err.toString(),
+        });
       }
 
       if (avatar) {
         const encodeImage = avatar.buffer.toString('base64');
-        uploadImg(encodeImage, album, (err, link) => {
+        uploadImg(encodeImage, album, async (err, link) => {
           if (err) {
-            req.flash('errMessage', err.toString());
-            return next();
+            return res.json({
+              ok: 0,
+              message: err.toString(),
+            });
           }
-          User.create({
+
+          try {
+            const user = await User.create({
+              nickname,
+              username,
+              password: hash,
+              email,
+              phone,
+              avatarURL: link,
+            });
+
+            if (user) {
+              return res.json({
+                ok: 1,
+                message: 'Success',
+              });
+            }
+          } catch (err) {
+            return res.json({
+              ok: 0,
+              message: err.toString(),
+            });
+          }
+        });
+      } else {
+        try {
+          const user = await User.create({
             nickname,
             username,
             password: hash,
             email,
             phone,
-            avatarURL: link,
-          })
-            .then((user) => {
-              req.session.username = username;
-              return res.redirect('/');
-            })
-            .catch((err) => {
-              req.flash('errMessage', err.toString());
-              return next();
-            });
-        });
-      } else {
-        User.create({
-          nickname,
-          username,
-          password: hash,
-          email,
-          phone,
-        })
-          .then((user) => {
-            req.session.username = username;
-            return res.redirect('/');
-          })
-          .catch((err) => {
-            req.flash('errMessage', err.toString());
-            return next();
           });
+
+          if (user) {
+            return res.json({
+              ok: 1,
+              message: 'Success',
+            });
+          }
+        } catch (err) {
+          return res.json({
+            ok: 0,
+            message: err.toString(),
+          });
+        }
       }
     });
-  },
-
-  login: (req, res) => {
-    res.render('user/login');
   },
 
   handleLogin: async (req, res, next) => {
     const { username, password } = req.body;
     if (!username || !password) {
-      req.flash('errMessage', '請填入完整資料');
-      return next();
+      return res.json({
+        ok: 0,
+        message: '請輸入帳號及密碼',
+      });
     }
     let user;
     try {
@@ -88,31 +156,30 @@ const userController = {
         },
       });
     } catch (err) {
-      req.flash('errMessage', err.toString());
-      return next();
+      return res.json({
+        ok: 0,
+        message: err.toString(),
+      });
     }
     if (!user) {
-      req.flash('errMessage', '帳號錯誤');
-      return next();
+      return res.json({
+        ok: 0,
+        message: '此帳號不存在',
+      });
     }
 
     bcrypt.compare(password, user.password, (err, isSuccess) => {
       if (!isSuccess || err) {
-        req.flash('errMessage', '密碼錯誤');
-        return next();
+        return res.json({
+          ok: 0,
+          message: '密碼錯誤',
+        });
       }
-      req.session.username = user.username;
-      res.redirect('/');
+      return res.json({
+        ok: 1,
+        message: 'Success',
+      });
     });
-  },
-
-  logout: (req, res) => {
-    req.session.username = null;
-    res.redirect('/');
-  },
-
-  update: (req, res) => {
-    res.render('user/profile');
   },
 
   handleUpdate: async (req, res, next) => {
@@ -120,8 +187,10 @@ const userController = {
     const avatar = req.file;
 
     if (!nickname || !email || !phone) {
-      req.flash('errMessage', '請填入完整資料');
-      return next();
+      return res.json({
+        ok: 0,
+        message: '必填欄位不得為空',
+      });
     }
 
     let user;
@@ -132,44 +201,97 @@ const userController = {
         },
       });
     } catch (err) {
-      req.flash('errMessage', err.toString());
-      return next();
+      return res.json({
+        ok: 0,
+        message: err.toString(),
+      });
     }
 
     if (avatar) {
       deleteImg(user.avatarURL, (err) => {
         if (err) {
-          req.flash('errMessage', err.toString());
-          return next();
+          return res.json({
+            ok: 0,
+            message: err.toString(),
+          });
         }
       });
       const encodeImage = avatar.buffer.toString('base64');
-      uploadImg(encodeImage, album, (err, link) => {
+      uploadImg(encodeImage, album, async (err, link) => {
         if (err) {
-          req.flash('errMessage', err.toString());
-          return next();
+          return res.json({
+            ok: 0,
+            message: err.toString(),
+          });
         }
-        user
-          .update({
+
+        try {
+          await user.update({
             nickname,
             email,
             phone,
             avatarURL: link,
-          })
-          .then(() => {
-            res.redirect('/users/profile');
           });
+          return res.json({
+            ok: 1,
+            message: 'Success',
+          });
+        } catch (err) {
+          return res.json({
+            ok: 0,
+            message: '更新失敗',
+          });
+        }
       });
     } else {
-      user
-        .update({
+      try {
+        await user.update({
           nickname,
           email,
           phone,
-        })
-        .then(() => {
-          res.redirect('/users/profile');
         });
+        return res.json({
+          ok: 1,
+          message: 'Success',
+        });
+      } catch (err) {
+        return res.json({
+          ok: 0,
+          message: '更新失敗',
+        });
+      }
+    }
+  },
+
+  handleUpdateRole: async (req, res, next) => {
+    let user;
+    try {
+      user = await User.findOne({
+        where: {
+          id: req.params.id,
+        },
+      });
+    } catch (err) {
+      return res.json({
+        ok: 0,
+        message: err.toString(),
+      });
+    }
+
+    const newRole = user.role === 'suspended' ? 'member' : 'suspended';
+    try {
+      await user.update({
+        role: newRole,
+      });
+      return res.json({
+        ok: 1,
+        message: 'Success',
+      });
+    } catch (err) {
+      return res.json({
+        ok: 0,
+        message: '更新失敗',
+      });
     }
   },
 };
