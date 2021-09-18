@@ -31,42 +31,42 @@ module.exports = {
       allowNull: false,
       type: Sequelize.INTEGER,
     });
-    await queryInterface.addColumn('OrderItems', 'clientId' {
+    await queryInterface.addColumn('OrderItems', 'clientId', {
       allowNull: false,
       type: Sequelize.INTEGER,
     });
-    await queryInterface.addColumn('OrderItems', 'totalQuantity' {
+    await queryInterface.addColumn('OrderItems', 'totalQuantity', {
       allowNull: false,
       type: Sequelize.INTEGER,
     });
-    await queryInterface.addColumn('OrderItems', 'totalPrice' {
+    await queryInterface.addColumn('OrderItems', 'totalPrice', {
       allowNull: false,
       type: Sequelize.INTEGER,
     });
-    await queryInterface.addColumn('OrderItems', 'pickupTime' {
+    await queryInterface.addColumn('OrderItems', 'pickupTime', {
       allowNull: false,
       type: Sequelize.DATE,
     });
-    await queryInterface.addColumn('OrderItems', 'content' {
+    await queryInterface.addColumn('OrderItems', 'content', {
       allowNull: false,
       type: Sequelize.TEXT,
     });
-    await queryInterface.addColumn('OrderItems', 'isPaid' {
+    await queryInterface.addColumn('OrderItems', 'isPaid', {
       allowNull: false,
       defaultValue: false,
       type: Sequelize.BOOLEAN,
     });
-    await queryInterface.addColumn('OrderItems', 'isComplete' {
+    await queryInterface.addColumn('OrderItems', 'isComplete', {
       allowNull: false,
       defaultValue: false,
       type: Sequelize.BOOLEAN,
     });
-    await queryInterface.addColumn('OrderItems', 'isCanceledByVendor' {
+    await queryInterface.addColumn('OrderItems', 'isCanceledByVendor', {
       allowNull: false,
       defaultValue: false,
       type: Sequelize.BOOLEAN,
     });
-    await queryInterface.addColumn('OrderItems', 'isCanceledByClient' {
+    await queryInterface.addColumn('OrderItems', 'isCanceledByClient', {
       allowNull: false,
       defaultValue: false,
       type: Sequelize.BOOLEAN,
@@ -74,5 +74,5 @@ module.exports = {
     await queryInterface.removeColumn('OrderItems', 'productId');
     await queryInterface.removeColumn('OrderItems', 'orderId');
     await queryInterface.removeColumn('OrderItems', 'quantity');
-  }
+  },
 };
