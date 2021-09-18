@@ -6,7 +6,7 @@ const multer = require('multer');
 const app = express();
 const port = process.env.PORT || 3001;
 const userController = require('./controllers/user');
-
+const productController = require("./controllers/product")
 const upload = multer();
 
 app.set('view engine', 'ejs');
@@ -37,6 +37,12 @@ app.post(
   userController.handleUpdate
 );
 app.post('/users/auth/:id', userController.handleUpdateRole);
+
+app.get("/products/:id", productController.getProdoctInfo)
+app.get("/products", productController.getAllProdoctsInfo)
+app.post("/products/add", productController.handleAdd)
+app.patch("/products/:id", productController.handleUpdate)
+app.delete("/products/:id", productController.handleDelete)
 
 app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}`);
