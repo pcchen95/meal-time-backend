@@ -9,9 +9,6 @@ const userController = require('./controllers/user');
 
 const upload = multer();
 
-app.set('view engine', 'ejs');
-app.use(express.static('public'));
-
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'keyboard cat',
@@ -37,6 +34,7 @@ app.post(
   userController.handleUpdate
 );
 app.post('/users/auth/:id', userController.handleUpdateRole);
+app.post('/users/password/:id', userController.handleUpdatePassword);
 
 app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}`);

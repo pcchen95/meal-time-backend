@@ -3,7 +3,7 @@ const db = require('../models');
 const { uploadImg, deleteImg } = require('./imgur.js');
 
 const saltRounds = 10;
-const { User, Vendor } = db;
+const { User } = db;
 const album = '19dKauX';
 
 const userController = {
@@ -344,61 +344,6 @@ const userController = {
       return res.json({
         ok: 0,
         message: '更新失敗',
-      });
-    }
-  },
-
-  getVendor: async (req, res, next) => {
-    let user;
-    try {
-      user = await User.findOne({
-        where: {
-          id: req.params.id,
-        },
-        attributes: [
-          'nickname',
-          'username',
-          'phone',
-          'email',
-          'avatarURL',
-          'role',
-        ],
-      });
-
-      return res.json({
-        ok: 1,
-        data: user,
-      });
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: err.toString(),
-      });
-    }
-  },
-
-  getAllProfiles: async (req, res, next) => {
-    let users;
-    try {
-      users = await User.findAll({
-        attributes: [
-          'id',
-          'nickname',
-          'username',
-          'phone',
-          'email',
-          'avatarURL',
-          'role',
-        ],
-      });
-      return res.json({
-        ok: 1,
-        data: users,
-      });
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: err.toString(),
       });
     }
   },
