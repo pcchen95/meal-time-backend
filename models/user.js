@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
       User.hasOne(models.Message, {
         foreignKey: 'clientId',
       });
-      User.hasOne(models.MessagesToAdmin, {
+      User.hasOne(models.MessageToAdmin, {
         foreignKey: 'userId',
       });
     }
