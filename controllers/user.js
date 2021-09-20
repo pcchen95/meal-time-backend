@@ -63,13 +63,20 @@ const userController = {
   },
 
   handleRegister: (req, res, next) => {
-    const { nickname, username, password, email, phone } = req.body;
+    const { nickname, username, password, confirmPassword, email, phone } = req.body;
     const avatar = req.file;
 
-    if (!nickname || !username || !password || !email || !phone) {
+    if (!nickname || !username || !password || !confirmPassword || !email || !phone) {
       return res.json({
         ok: 0,
-        message: '請填入所有必填欄位',
+        message: 'nickname, username, password, confirmPassword, email, phone are required',
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.json({
+        ok: 0,
+        message: 'password and confirmPassword are inconsistent',
       });
     }
 
@@ -145,7 +152,7 @@ const userController = {
     if (!username || !password) {
       return res.json({
         ok: 0,
-        message: '請輸入帳號及密碼',
+        message: 'username and password are required',
       });
     }
     let user;
@@ -164,15 +171,21 @@ const userController = {
     if (!user) {
       return res.json({
         ok: 0,
-        message: '此帳號不存在',
+        message: 'username does not exist',
       });
     }
 
     bcrypt.compare(password, user.password, (err, isSuccess) => {
-      if (!isSuccess || err) {
+      if (err) {
         return res.json({
           ok: 0,
-          message: '密碼錯誤',
+          message: err.toString(),
+        });
+      }
+      if (!isSuccess) {
+        return res.json({
+          ok: 0,
+          message: 'password is wrong',
         });
       }
       return res.json({
@@ -189,7 +202,7 @@ const userController = {
     if (!nickname || !email || !phone) {
       return res.json({
         ok: 0,
-        message: '必填欄位不得為空',
+        message: 'nickname, email, phone are required',
       });
     }
 
@@ -206,6 +219,11 @@ const userController = {
         message: err.toString(),
       });
     }
+
+    const params = {};
+    if (nickname !== user.nickname) params.nickname = nickname;
+    if (email !== user.email) params.email = email;
+    if (phone !== user.phone) params.phone = phone;
 
     if (avatar) {
       deleteImg(user.avatarURL, (err) => {
@@ -225,13 +243,9 @@ const userController = {
           });
         }
 
+        params.avatarURL = link;
         try {
-          await user.update({
-            nickname,
-            email,
-            phone,
-            avatarURL: link,
-          });
+          await user.update(params);
           return res.json({
             ok: 1,
             message: 'Success',
@@ -239,17 +253,13 @@ const userController = {
         } catch (err) {
           return res.json({
             ok: 0,
-            message: '更新失敗',
+            message: 'Failed',
           });
         }
       });
     } else {
       try {
-        await user.update({
-          nickname,
-          email,
-          phone,
-        });
+        await user.update(params);
         return res.json({
           ok: 1,
           message: 'Success',
@@ -257,7 +267,7 @@ const userController = {
       } catch (err) {
         return res.json({
           ok: 0,
-          message: '更新失敗',
+          message: 'Failed',
         });
       }
     }
@@ -290,7 +300,7 @@ const userController = {
     } catch (err) {
       return res.json({
         ok: 0,
-        message: '更新失敗',
+        message: 'Failed',
       });
     }
   },
@@ -304,103 +314,72 @@ const userController = {
       });
     }
 
-    if (!oldPassword !== !newPassword) {
+    if (oldPassword === newPassword) {
       return res.json({
         ok: 0,
         message: 'oldPassword and newPassword are the same.',
       });
     }
 
-    if (!newPassword !== !confirmPassword) {
+    if (newPassword !== confirmPassword) {
       return res.json({
         ok: 0,
         message: 'newPassword and confirmPassword are inconsistent.',
       });
     }
 
-    let user;
     try {
-      user = await User.findOne({
+      let user = await User.findOne({
         where: {
           id: req.params.id,
         },
       });
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: err.toString(),
-      });
-    }
 
-    try {
-      await user.update({
-        password: newPassword,
-      });
-      return res.json({
-        ok: 1,
-        message: 'Success',
-      });
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: '更新失敗',
-      });
-    }
-  },
+      bcrypt.compare(oldPassword, user.password, (err, isSuccess) => {
+        if (err) {
+          return res.json({
+            ok: 0,
+            message: err.toString(),
+          });
+        }
 
-  getVendor: async (req, res, next) => {
-    let user;
-    try {
-      user = await User.findOne({
-        where: {
-          id: req.params.id,
-        },
-        attributes: [
-          'nickname',
-          'username',
-          'phone',
-          'email',
-          'avatarURL',
-          'role',
-        ],
-      });
+        if (!isSuccess) {
+          return res.json({
+            ok: 0,
+            message: 'oldPassword is wrong',
+          });
+        }
 
-      return res.json({
-        ok: 1,
-        data: user,
-      });
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: err.toString(),
-      });
-    }
-  },
-
-  getAllProfiles: async (req, res, next) => {
-    let users;
-    try {
-      users = await User.findAll({
-        attributes: [
-          'id',
-          'nickname',
-          'username',
-          'phone',
-          'email',
-          'avatarURL',
-          'role',
-        ],
-      });
-      return res.json({
-        ok: 1,
-        data: users,
+        bcrypt.hash(newPassword, saltRounds, async (err, hash) => {
+          if (err) {
+            return res.json({
+              ok: 0,
+              message: err.toString(),
+            });
+          }
+          
+          try {
+            await user.update({
+              password: hash,
+            });
+            return res.json({
+              ok: 1,
+              message: 'Success',
+            });
+          } catch (err) {
+            return res.json({
+              ok: 0,
+              message: 'Failed',
+            });
+          }
+        })
       });
     } catch (err) {
       return res.json({
         ok: 0,
         message: err.toString(),
       });
-    }
+    } 
   },
 };
 

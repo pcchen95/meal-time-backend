@@ -1,32 +1,25 @@
-const bcrypt = require('bcrypt');
 const db = require('../models');
-const { uploadImg, deleteImg } = require('./imgur.js');
+const { uploadImg, deleteImg, uploadMultipleImg } = require('./imgur.js');
+const { addressToLatLng } = require('./address.js');
 
 const saltRounds = 10;
-const { User } = db;
-const album = '19dKauX';
+const { Vendor, User } = db;
+const avatarAlbum = 'nujdtHG';
+const bannerAlbum = 'd0CNkYE';
 
-const userController = {
-  getProfile: async (req, res, next) => {
-    let user;
+const vendorController = {
+  getVendor: async (req, res, next) => {
+    let vendor;
     try {
-      user = await User.findOne({
+      vendor = await Vendor.findOne({
         where: {
           id: req.params.id,
         },
-        attributes: [
-          'nickname',
-          'username',
-          'phone',
-          'email',
-          'avatarURL',
-          'role',
-        ],
       });
 
       return res.json({
         ok: 1,
-        data: user,
+        data: vendor,
       });
     } catch (err) {
       return res.json({
@@ -36,23 +29,12 @@ const userController = {
     }
   },
 
-  getAllProfiles: async (req, res, next) => {
-    let users;
+  getAllVendors: async (req, res, next) => {
     try {
-      users = await User.findAll({
-        attributes: [
-          'id',
-          'nickname',
-          'username',
-          'phone',
-          'email',
-          'avatarURL',
-          'role',
-        ],
-      });
+      const vendors = await Vendor.findAll();
       return res.json({
         ok: 1,
-        data: users,
+        data: vendors,
       });
     } catch (err) {
       return res.json({
@@ -62,69 +44,110 @@ const userController = {
     }
   },
 
-  handleRegister: (req, res, next) => {
-    const { nickname, username, password, email, phone } = req.body;
-    const avatar = req.file;
+  handleRegister: async (req, res, next) => {
+    const {
+      vendorName,
+      address,
+      phone,
+      avatarUrl,
+      bannerUrl,
+      categoryId,
+      description,
+      openingHour,
+    } = req.body;
 
-    if (!nickname || !username || !password || !email || !phone) {
+    if (!vendorName || !address || !phone || !openingHour) {
       return res.json({
         ok: 0,
-        message: '請填入所有必填欄位',
+        message: 'All fields are required.',
       });
     }
 
-    bcrypt.hash(password, saltRounds, async (err, hash) => {
+    try {
+      const user = await User.findOne({
+        where: {
+          id: req.params.id,
+        },
+      });
+      await user.update({
+        role: 'vendor',
+      });
+    } catch (err) {
+      return res.json({
+        ok: 0,
+        message: err.toString(),
+      });
+    }
+
+    let params = {
+      userId: req.params.id,
+      vendorName,
+      address,
+      phone,
+      position: null,
+      avatarUrl: null,
+      bannerUrl: null,
+      categoryId,
+      description,
+      openingHour,
+    };
+    const avatar = req.files['avatar'] ? req.files['avatar'][0] : null;
+    const banner = req.files['banner'] ? req.files['banner'][0] : null;
+
+    await addressToLatLng(address, (err, location) => {
       if (err) {
         return res.json({
           ok: 0,
           message: err.toString(),
         });
       }
-
-      if (avatar) {
-        const encodeImage = avatar.buffer.toString('base64');
-        uploadImg(encodeImage, album, async (err, link) => {
-          if (err) {
-            return res.json({
-              ok: 0,
-              message: err.toString(),
-            });
-          }
-
-          try {
-            const user = await User.create({
-              nickname,
-              username,
-              password: hash,
-              email,
-              phone,
-              avatarURL: link,
-            });
-
-            if (user) {
+      const { lat, lng } = location;
+      params.position = { type: 'Point', coordinates: [lat, lng] };
+      if (avatar || banner) {
+        const encodeAvatar = avatar ? avatar.buffer.toString('base64') : '';
+        const encodeBanner = banner ? banner.buffer.toString('base64') : '';
+        uploadMultipleImg(
+          {
+            avatar: {
+              encodeImage: encodeAvatar,
+              album: avatarAlbum,
+            },
+            banner: {
+              encodeImage: encodeBanner,
+              album: bannerAlbum,
+            },
+          },
+          (err, links) => {
+            if (err) {
               return res.json({
-                ok: 1,
-                message: 'Success',
+                ok: 0,
+                message: err.toString(),
               });
             }
-          } catch (err) {
-            return res.json({
-              ok: 0,
-              message: err.toString(),
-            });
+            const { avatar, banner } = links;
+            params.avatarUrl = avatar;
+            params.bannerUrl = banner;
+
+            try {
+              const vendor = Vendor.create(params);
+              if (vendor) {
+                return res.json({
+                  ok: 1,
+                  message: 'Success',
+                });
+              }
+            } catch (err) {
+              return res.json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
           }
-        });
+        );
       } else {
         try {
-          const user = await User.create({
-            nickname,
-            username,
-            password: hash,
-            email,
-            phone,
-          });
-
-          if (user) {
+          const vendor = Vendor.create(params);
+          if (vendor) {
             return res.json({
               ok: 1,
               message: 'Success',
@@ -140,19 +163,12 @@ const userController = {
     });
   },
 
-  handleLogin: async (req, res, next) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.json({
-        ok: 0,
-        message: '請輸入帳號及密碼',
-      });
-    }
-    let user;
+  handleUpdateAuth: async (req, res, next) => {
+    let vendor;
     try {
-      user = await User.findOne({
+      vendor = await Vendor.findOne({
         where: {
-          username,
+          id: req.params.id,
         },
       });
     } catch (err) {
@@ -161,41 +177,44 @@ const userController = {
         message: err.toString(),
       });
     }
-    if (!user) {
-      return res.json({
-        ok: 0,
-        message: '此帳號不存在',
-      });
-    }
 
-    bcrypt.compare(password, user.password, (err, isSuccess) => {
-      if (!isSuccess || err) {
-        return res.json({
-          ok: 0,
-          message: '密碼錯誤',
-        });
-      }
+    try {
+      await vendor.update({
+        isSuspended: !vendor.isSuspended,
+      });
       return res.json({
         ok: 1,
         message: 'Success',
       });
-    });
+    } catch (err) {
+      return res.json({
+        ok: 0,
+        message: '更新失敗',
+      });
+    }
   },
 
   handleUpdate: async (req, res, next) => {
-    const { nickname, email, phone } = req.body;
-    const avatar = req.file;
+    const {
+      vendorName,
+      address,
+      phone,
+      avatarUrl,
+      bannerUrl,
+      categoryId,
+      description,
+      openingHour,
+    } = req.body;
 
-    if (!nickname || !email || !phone) {
+    if (!vendorName || !address || !phone || !openingHour) {
       return res.json({
         ok: 0,
-        message: '必填欄位不得為空',
+        message: 'All fields are required.',
       });
     }
-
-    let user;
+    let vendor;
     try {
-      user = await User.findOne({
+      vendor = await Vendor.findOne({
         where: {
           id: req.params.id,
         },
@@ -207,146 +226,101 @@ const userController = {
       });
     }
 
-    if (avatar) {
-      deleteImg(user.avatarURL, (err) => {
-        if (err) {
-          return res.json({
-            ok: 0,
-            message: err.toString(),
-          });
-        }
-      });
-      const encodeImage = avatar.buffer.toString('base64');
-      uploadImg(encodeImage, album, async (err, link) => {
-        if (err) {
-          return res.json({
-            ok: 0,
-            message: err.toString(),
-          });
-        }
+    let params = {};
+    if (vendorName !== vendor.vendorName) params.vendorName = vendorName;
+    if (address !== vendor.address) params.address = address;
+    if (phone !== vendor.phone) params.phone = phone;
+    if (categoryId !== vendor.categoryId) params.categoryId = categoryId;
+    if (description !== vendor.description) params.description = description;
+    if (openingHour !== vendor.openingHour) params.openingHour = openingHour;
 
+    const avatar = req.files['avatar'] ? req.files['avatar'][0] : null;
+    const banner = req.files['banner'] ? req.files['banner'][0] : null;
+
+    await addressToLatLng(address, (err, location) => {
+      if (err) {
+        return res.json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+      const { lat, lng } = location;
+      params.position = { type: 'Point', coordinates: [lat, lng] };
+      if (avatar || banner) {
+        deleteImg(vendor.avatarUrl, (err) => {
+          if (err) {
+            return res.json({
+              ok: 0,
+              message: err.toString(),
+            });
+          }
+        });
+        deleteImg(vendor.bannerUrl, (err) => {
+          if (err) {
+            return res.json({
+              ok: 0,
+              message: err.toString(),
+            });
+          }
+        });
+        const encodeAvatar = avatar ? avatar.buffer.toString('base64') : '';
+        const encodeBanner = banner ? banner.buffer.toString('base64') : '';
+        uploadMultipleImg(
+          {
+            avatar: {
+              encodeImage: encodeAvatar,
+              album: avatarAlbum,
+            },
+            banner: {
+              encodeImage: encodeBanner,
+              album: bannerAlbum,
+            },
+          },
+          (err, links) => {
+            if (err) {
+              return res.json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+            const { avatar, banner } = links;
+            params.avatarUrl = avatar;
+            params.bannerUrl = banner;
+
+            try {
+              const result = vendor.update(params);
+              if (result) {
+                return res.json({
+                  ok: 1,
+                  message: 'Success',
+                });
+              }
+            } catch (err) {
+              return res.json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          }
+        );
+      } else {
         try {
-          await user.update({
-            nickname,
-            email,
-            phone,
-            avatarURL: link,
-          });
-          return res.json({
-            ok: 1,
-            message: 'Success',
-          });
+          const result = vendor.update(params);
+          if (result) {
+            return res.json({
+              ok: 1,
+              message: 'Success',
+            });
+          }
         } catch (err) {
           return res.json({
             ok: 0,
-            message: '更新失敗',
+            message: err.toString(),
           });
         }
-      });
-    } else {
-      try {
-        await user.update({
-          nickname,
-          email,
-          phone,
-        });
-        return res.json({
-          ok: 1,
-          message: 'Success',
-        });
-      } catch (err) {
-        return res.json({
-          ok: 0,
-          message: '更新失敗',
-        });
       }
-    }
-  },
-
-  handleUpdateRole: async (req, res, next) => {
-    let user;
-    try {
-      user = await User.findOne({
-        where: {
-          id: req.params.id,
-        },
-      });
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: err.toString(),
-      });
-    }
-
-    const newRole = user.role === 'suspended' ? 'member' : 'suspended';
-    try {
-      await user.update({
-        role: newRole,
-      });
-      return res.json({
-        ok: 1,
-        message: 'Success',
-      });
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: '更新失敗',
-      });
-    }
-  },
-
-  handleUpdatePassword: async (req, res, next) => {
-    const { oldPassword, newPassword, confirmPassword } = req.body;
-    if (!oldPassword || !newPassword || !confirmPassword) {
-      return res.json({
-        ok: 0,
-        message: 'oldPassword, newPassword, confirmPassword is required',
-      });
-    }
-
-    if (!oldPassword !== !newPassword) {
-      return res.json({
-        ok: 0,
-        message: 'oldPassword and newPassword are the same.',
-      });
-    }
-
-    if (!newPassword !== !confirmPassword) {
-      return res.json({
-        ok: 0,
-        message: 'newPassword and confirmPassword are inconsistent.',
-      });
-    }
-
-    let user;
-    try {
-      user = await User.findOne({
-        where: {
-          id: req.params.id,
-        },
-      });
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: err.toString(),
-      });
-    }
-
-    try {
-      await user.update({
-        password: newPassword,
-      });
-      return res.json({
-        ok: 1,
-        message: 'Success',
-      });
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: '更新失敗',
-      });
-    }
+    });
   },
 };
 
-module.exports = userController;
+module.exports = vendorController;
