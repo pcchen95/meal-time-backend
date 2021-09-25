@@ -1,43 +1,52 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const session = require('express-session');
-const multer = require('multer');
+const express = require("express")
+const bodyParser = require("body-parser")
+const session = require("express-session")
+const multer = require("multer")
 
-const app = express();
-const port = process.env.PORT || 3001;
-const userController = require('./controllers/user');
+const app = express()
+const port = process.env.PORT || 3001
+const userController = require("./controllers/user")
 
-const upload = multer();
+const upload = multer()
 
-app.set('view engine', 'ejs');
-app.use(express.static('public'));
+app.set("view engine", "ejs")
+app.use(express.static("public"))
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'keyboard cat',
+    secret: process.env.SESSION_SECRET || "keyboard cat",
     resave: false,
     saveUninitialized: true,
   })
-);
+)
 
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
 
-app.get('/users/profile/:id', userController.getProfile);
-app.get('/users/profiles', userController.getAllProfiles);
+app.get("/users/profile/:id", userController.getProfile)
+app.get("/users/profiles", userController.getAllProfiles)
 app.post(
-  '/users/register',
-  upload.single('avatar'),
+  "/users/register",
+  upload.single("avatar"),
   userController.handleRegister
-);
-app.post('/users/login', userController.handleLogin);
+)
+app.post("/users/login", userController.handleLogin)
 app.post(
-  '/users/profile/:id',
-  upload.single('avatar'),
+  "/users/profile/:id",
+  upload.single("avatar"),
   userController.handleUpdate
-);
-app.post('/users/auth/:id', userController.handleUpdateRole);
+)
+app.post("/users/auth/:id", userController.handleUpdateRole)
+
+app.get("/products/:id", productController.getInfo)
+app.get("/products", productController.getAllInfo)
+app.get("/products/vendor/:id", productController.searchByVendor)
+app.get("/products/categories/:id", productController.searchByCategory)
+app.get("/products/search/:keyword", productController.searchByKeyword)
+app.post("/products/new", productController.handleAdd)
+app.patch("/products/:id", productController.handleUpdate)
+app.delete("/products/:id", productController.handleDelete)
 
 app.listen(port, () => {
-  console.log(`Listening at http://localhost:${port}`);
-});
+  console.log(`Listening at http://localhost:${port}`)
+})
