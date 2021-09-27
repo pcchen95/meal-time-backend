@@ -7,6 +7,8 @@ const app = express()
 const port = process.env.PORT || 3001
 const userController = require("./controllers/user")
 const productCategoriesController = require("./controllers/productCategories")
+const vendorCategoriesController = require("./controllers/vendorCategories")
+
 const upload = multer()
 
 app.set("view engine", "ejs")
@@ -56,6 +58,14 @@ app.patch(
 app.delete(
   "/products-categories/:id",
   productCategoriesController.deleteCategory
+)
+
+app.get("/products-categories", vendorCategoriesController.getAll)
+app.post("/products-categories", vendorCategoriesController.newCategory)
+app.patch("/products-categories/:id", vendorCategoriesController.updateCategory)
+app.delete(
+  "/products-categories/:id",
+  vendorCategoriesController.deleteCategory
 )
 
 app.listen(port, () => {
