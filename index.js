@@ -6,7 +6,7 @@ const multer = require("multer")
 const app = express()
 const port = process.env.PORT || 3001
 const userController = require("./controllers/user")
-
+const productCategoriesController = require("./controllers/productCategories")
 const upload = multer()
 
 app.set("view engine", "ejs")
@@ -46,6 +46,17 @@ app.get("/products/search/:keyword", productController.searchByKeyword)
 app.post("/products/new", productController.handleAdd)
 app.patch("/products/:id", productController.handleUpdate)
 app.delete("/products/:id", productController.handleDelete)
+
+app.get("/products-categories", productCategoriesController.getAll)
+app.post("/products-categories", productCategoriesController.newCategory)
+app.patch(
+  "/products-categories/:id",
+  productCategoriesController.updateCategory
+)
+app.delete(
+  "/products-categories/:id",
+  productCategoriesController.deleteCategory
+)
 
 app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}`)
