@@ -9,18 +9,19 @@ const port = process.env.PORT || 3001;
 const userController = require('./controllers/user');
 const vendorController = require('./controllers/vendor');
 
-const upload = multer();
+
+const upload = multer()
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'keyboard cat',
+    secret: process.env.SESSION_SECRET || "keyboard cat",
     resave: false,
     saveUninitialized: true,
   })
-);
+)
 
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
 
 app.get('/users/me', ensureToken, userController.getMe);
 app.get('/users/:id', ensureToken, userController.getProfileById);
@@ -71,6 +72,15 @@ app.patch(
 );
 app.patch('/vendors/auth/:id', ensureToken, vendorController.updateAuth);
 
+app.get("/products/:id", productController.getInfo)
+app.get("/products", productController.getAllInfo)
+app.get("/products/vendor/:id", productController.searchByVendor)
+app.get("/products/categories/:id", productController.searchByCategory)
+app.get("/products/search/:keyword", productController.searchByKeyword)
+app.post("/products/new", productController.handleAdd)
+app.patch("/products/:id", productController.handleUpdate)
+app.delete("/products/:id", productController.handleDelete)
+
 app.listen(port, () => {
-  console.log(`Listening at http://localhost:${port}`);
-});
+  console.log(`Listening at http://localhost:${port}`)
+})
