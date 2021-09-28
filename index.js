@@ -6,6 +6,7 @@ const multer = require("multer")
 const app = express()
 const port = process.env.PORT || 3001
 const userController = require("./controllers/user")
+const productController = require("./controllers/product")
 
 const upload = multer()
 

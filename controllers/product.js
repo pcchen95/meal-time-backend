@@ -2,14 +2,14 @@ const { Op } = require("sequelize")
 const db = require("../models")
 const { uploadImg, deleteImg } = require("./imgur.js")
 
-const { Product } = db
+const { Products } = db
 const album = "gpxFA0k"
 
 const productController = {
   getInfo: async (req, res) => {
     const id = req.params.id
     try {
-      const procuct = await Product.findOne({
+      const procuct = await Products.findOne({
         where: {
           id,
         },
@@ -38,7 +38,7 @@ const productController = {
   searchByVendor: async (req, res) => {
     const id = req.params.id
     try {
-      const procucts = await Product.findAll({
+      const procucts = await Products.findAll({
         where: {
           vendorId: id,
         },
@@ -67,7 +67,7 @@ const productController = {
   searchByCategory: async (req, res) => {
     const id = req.params.id
     try {
-      const procucts = await Product.findAll({
+      const procucts = await Products.findAll({
         where: {
           categoryId: id,
         },
@@ -95,7 +95,7 @@ const productController = {
 
   getAllInfo: async (req, res) => {
     try {
-      const products = await Product.findAll({
+      const products = await Products.findAll({
         include: [
           {
             model: ProductCategories,
@@ -136,7 +136,7 @@ const productController = {
     }
 
     try {
-      const procucts = await Product.findAll({
+      const procucts = await Products.findAll({
         where: {
           [Op.or]: [
             {
@@ -189,13 +189,13 @@ const productController = {
       expiryDate,
       description,
       isAvailable,
-    } = req.body.productData
+    } = req.body
     const picture = req.file
     try {
       if (picture) {
         const encodeImage = avatar.buffer.toString("base64")
-        uploadImg(encodeImage, album, (err, link) => {
-          await Product.create({
+        uploadImg(encodeImage, album, async (err, link) => {
+          await Products.create({
             vendorId,
             name,
             categoryId,
@@ -237,8 +237,8 @@ const productController = {
     try {
       if (picture) {
         const encodeImage = avatar.buffer.toString("base64")
-        uploadImg(encodeImage, album, (err, link) => {
-          const updateProduct = await Product.findOne({
+        uploadImg(encodeImage, album, async (err, link) => {
+          const updateProduct = await Products.findOne({
             where: {
               id,
             },
@@ -271,7 +271,7 @@ const productController = {
   handleDelete: async (req, res) => {
     const id = req.params.id
     try {
-      await Product.destroy({
+      await Products.destroy({
         where: {
           id,
         },
