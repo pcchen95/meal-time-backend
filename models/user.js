@@ -11,16 +11,16 @@ module.exports = (sequelize, DataTypes) => {
       User.hasOne(models.Vendor, {
         foreignKey: 'userId',
       });
-      User.hasMany(models.OrderItems, {
+      User.hasMany(models.Order, {
         foreignKey: 'clientId',
       });
-      User.hasMany(models.ReportMessages, {
+      User.hasMany(models.ReportMessage, {
         foreignKey: 'userId',
       });
-      User.hasOne(models.Messages, {
+      User.hasOne(models.Message, {
         foreignKey: 'clientId',
       });
-      User.hasOne(models.MessagesToAdmin, {
+      User.hasOne(models.MessageToAdmin, {
         foreignKey: 'userId',
       });
     }
