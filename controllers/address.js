@@ -1,7 +1,7 @@
 const request = require('request');
 const apiUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
 
-const { googleApiKey } = require('../apiKei/key');
+const { googleApiKey } = require('../apiKey/key');
 function addressToLatLng(address, cb) {
   request(
     encodeURI(`${apiUrl}?address=${address}&key=${googleApiKey}`),
