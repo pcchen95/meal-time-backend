@@ -14,16 +14,16 @@ module.exports = (sequelize, DataTypes) => {
       Vendor.belongsTo(models.VendorCategory, {
         foreignKey: 'categoryId',
       });
-      Vendor.hasMany(models.Products, {
+      Vendor.hasMany(models.Product, {
         foreignKey: 'vendorId',
       });
-      Vendor.hasMany(models.OrderItems, {
+      Vendor.hasMany(models.Order, {
         foreignKey: 'vendorId',
       });
-      Vendor.hasMany(models.ReportMessages, {
+      Vendor.hasMany(models.ReportMessage, {
         foreignKey: 'reportedVendorId',
       });
-      Vendor.hasOne(models.Messages, {
+      Vendor.hasOne(models.Message, {
         foreignKey: 'vendorId',
       });
     }
