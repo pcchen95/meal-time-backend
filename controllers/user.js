@@ -1,17 +1,19 @@
 const bcrypt = require('bcrypt');
 const db = require('../models');
 const jwt = require('jsonwebtoken');
+const secretKey = require('../auth/secretKey');
+
 const { uploadImg, deleteImg } = require('./imgur.js');
 
 const saltRounds = 10;
-const { User, Vendor, Message } = db;
+const { User, Vendor, Message, MessageToAdmin } = db;
 const album = '19dKauX';
 
 const userController = {
   getMe: (req, res, next) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
@@ -32,7 +34,7 @@ const userController = {
           ],
         });
 
-        return res.json({
+        return res.status(200).json({
           ok: 1,
           data: user,
         });
@@ -46,15 +48,15 @@ const userController = {
   },
 
   getProfileById: async (req, res, next) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
       }
       if (decoded.payload.admin !== 'admin') {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
         });
@@ -74,7 +76,7 @@ const userController = {
           ],
         });
 
-        return res.json({
+        return res.status(200).json({
           ok: 1,
           data: user,
         });
@@ -88,15 +90,15 @@ const userController = {
   },
 
   getAllProfiles: async (req, res, next) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
       }
       if (decoded.payload.role !== 'admin') {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
         });
@@ -113,7 +115,7 @@ const userController = {
             'role',
           ],
         });
-        return res.json({
+        return res.status(200).json({
           ok: 1,
           data: users,
         });
@@ -201,7 +203,7 @@ const userController = {
             });
 
             if (user) {
-              return res.json({
+              return res.status(200).json({
                 ok: 1,
                 message: 'Success',
               });
@@ -224,7 +226,7 @@ const userController = {
           });
 
           if (user) {
-            return res.json({
+            return res.status(200).json({
               ok: 1,
               message: 'Success',
             });
@@ -284,17 +286,18 @@ const userController = {
         userId: user.id,
         username: user.username,
         role: user.role,
+        vendorId: user.vendorId,
       };
 
       const token = jwt.sign(
         {
           payload,
-          exp: Math.floor(Date.now() / 1000) + 60 * 24,
+          exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
         },
-        'my_secret_key'
+        secretKey
       );
 
-      return res.json({
+      return res.status(200).json({
         ok: 1,
         token: token,
       });
@@ -302,17 +305,11 @@ const userController = {
   },
 
   updateMe: (req, res, next) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
-        });
-      }
-      if (decoded.payload.userId !== Number(req.params.id)) {
-        return res.json({
-          ok: 0,
-          message: 'you are not authorized',
         });
       }
       const { nickname, email, phone } = req.body;
@@ -329,7 +326,7 @@ const userController = {
       try {
         user = await User.findOne({
           where: {
-            id: req.params.id,
+            id: decoded.payload.userId,
           },
         });
       } catch (err) {
@@ -365,7 +362,7 @@ const userController = {
           params.avatarURL = link;
           try {
             await user.update(params);
-            return res.json({
+            return res.status(200).json({
               ok: 1,
               message: 'Success',
             });
@@ -379,7 +376,7 @@ const userController = {
       } else {
         try {
           await user.update(params);
-          return res.json({
+          return res.status(200).json({
             ok: 1,
             message: 'Success',
           });
@@ -394,15 +391,15 @@ const userController = {
   },
 
   updateById: (req, res, next) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
       }
       if (decoded.payload.role !== 'admin') {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
         });
@@ -457,7 +454,7 @@ const userController = {
           params.avatarURL = link;
           try {
             await user.update(params);
-            return res.json({
+            return res.status(200).json({
               ok: 1,
               message: 'Success',
             });
@@ -471,7 +468,7 @@ const userController = {
       } else {
         try {
           await user.update(params);
-          return res.json({
+          return res.status(200).json({
             ok: 1,
             message: 'Success',
           });
@@ -486,15 +483,15 @@ const userController = {
   },
 
   updateRole: async (req, res, next) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
       }
       if (decoded.payload.role !== 'admin') {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
         });
@@ -518,7 +515,7 @@ const userController = {
         await user.update({
           role: newRole,
         });
-        return res.json({
+        return res.status(200).json({
           ok: 1,
           message: 'Success',
         });
@@ -532,19 +529,14 @@ const userController = {
   },
 
   updatePassword: async (req, res, next) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
       }
-      if (decoded.payload.userId !== Number(req.params.id)) {
-        return res.json({
-          ok: 0,
-          message: 'you are not authorized',
-        });
-      }
+
       const { oldPassword, newPassword, confirmPassword } = req.body;
       if (!oldPassword || !newPassword || !confirmPassword) {
         return res.json({
@@ -570,7 +562,7 @@ const userController = {
       try {
         let user = await User.findOne({
           where: {
-            id: req.params.id,
+            id: decoded.payload.userId,
           },
         });
 
@@ -601,7 +593,7 @@ const userController = {
               await user.update({
                 password: hash,
               });
-              return res.json({
+              return res.status(200).json({
                 ok: 1,
                 message: 'Success',
               });
@@ -613,85 +605,6 @@ const userController = {
             }
           });
         });
-      } catch (err) {
-        return res.json({
-          ok: 0,
-          message: err.toString(),
-        });
-      }
-    });
-  },
-
-  messageToVendor: (req, res) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
-      if (err) {
-        return res.json({
-          ok: 0,
-          message: err.toString(),
-        });
-      }
-
-      let { content } = req.body;
-      let message;
-      try {
-        message = await Message.findOne({
-          where: {
-            clientId: decoded.payload.userId,
-          },
-        });
-
-        if (!message) {
-          try {
-            content = [{ client: [content] }];
-            const jsonContent = JSON.stringify(content);
-            const newMessage = await Message.create({
-              clientId: decoded.payload.userId,
-              vendorId: req.params.id,
-              content: jsonContent,
-            });
-
-            if (newMessage) {
-              return res.json({
-                ok: 1,
-                message: 'Success',
-              });
-            }
-          } catch (err) {
-            return res.json({
-              ok: 0,
-              message: err.toString(),
-            });
-          }
-        } else {
-          try {
-            const originMessage = JSON.parse(message.content);
-            const lastMessage = originMessage[originMessage.length - 1];
-            const lastUser = Object.keys(lastMessage)[0];
-            if (lastUser === 'client') {
-              originMessage[originMessage.length - 1].client.push(content);
-            } else {
-              originMessage.push({
-                client: [content],
-              });
-            }
-            const jsonContent = JSON.stringify(originMessage);
-            const newMessage = await message.update({
-              content: jsonContent,
-            });
-
-            if (newMessage) {
-              return res.json({
-                ok: 1,
-                message: 'Success',
-              });
-            }
-          } catch (err) {
-            return res.json({
-              ok: 0,
-              message: err.toString(),
-            });
-          }
-        }
       } catch (err) {
         return res.json({
           ok: 0,
