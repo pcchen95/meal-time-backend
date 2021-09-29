@@ -4,9 +4,12 @@ const session = require('express-session');
 const multer = require('multer');
 const ensureToken = require('./auth/ensureToken');
 
-const app = express();
-const port = process.env.PORT || 3001;
-const userController = require('./controllers/user');
+
+const app = express()
+const port = process.env.PORT || 3001
+const userController = require("./controllers/user")
+const productController = require("./controllers/product")
+const orderController = require("./controllers/order")
 const vendorController = require('./controllers/vendor');
 
 
@@ -80,6 +83,16 @@ app.get("/products/search/:keyword", productController.searchByKeyword)
 app.post("/products/new", productController.handleAdd)
 app.patch("/products/:id", productController.handleUpdate)
 app.delete("/products/:id", productController.handleDelete)
+
+app.get("/orders", orderController.getAll)
+app.get("/orders/:id", orderController.getOne)
+app.get("/orders/buy/:id", orderController.getBuy)
+app.get("/orders/sell/:id", orderController.getSell)
+app.post("orders/new", orderController.newOrder)
+app.patch("/orders/:id/complete", orderController.completeOrder)
+app.patch("/orders/:id/pay", orderController.payOrder)
+app.patch("/orders/:id/cancel", orderController.cancelOrder)
+app.delete("/orders/:id", orderController.deleteOrder)
 
 app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}`)
