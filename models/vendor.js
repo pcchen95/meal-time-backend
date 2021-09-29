@@ -11,6 +11,9 @@ module.exports = (sequelize, DataTypes) => {
       Vendor.belongsTo(models.User, {
         foreignKey: 'userId',
       });
+      Vendor.hasOne(models.User, {
+        foreignKey: 'vendorId',
+      });
       Vendor.belongsTo(models.VendorCategory, {
         foreignKey: 'categoryId',
       });

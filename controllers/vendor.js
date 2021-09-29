@@ -2,6 +2,7 @@ const db = require('../models');
 const jwt = require('jsonwebtoken');
 const { uploadImg, deleteImg, uploadMultipleImg } = require('./imgur.js');
 const { addressToLatLng } = require('./address.js');
+const secretKey = require('../auth/secretKey');
 
 const saltRounds = 10;
 const { Vendor, User } = db;
@@ -10,21 +11,28 @@ const bannerAlbum = 'd0CNkYE';
 
 const vendorController = {
   getVendorMe: async (req, res) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
+        });
+      }
+
+      if (!decoded.payload.vendorId) {
+        return res.json({
+          ok: 0,
+          message: 'you are not a vendor',
         });
       }
 
       try {
         const vendor = await Vendor.findOne({
           where: {
-            userId: decoded.payload.userId,
+            vendorId: decoded.payload.vendorId,
           },
         });
-        return res.json({
+        return res.status(200).json({
           ok: 1,
           data: vendor,
         });
@@ -38,9 +46,9 @@ const vendorController = {
   },
 
   getVendorById: async (req, res) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
@@ -59,7 +67,7 @@ const vendorController = {
           },
         });
 
-        return res.json({
+        return res.status(200).json({
           ok: 1,
           data: vendor,
         });
@@ -73,9 +81,9 @@ const vendorController = {
   },
 
   getAllVendors: async (req, res) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
@@ -88,7 +96,7 @@ const vendorController = {
       }
       try {
         const vendors = await Vendor.findAll();
-        return res.json({
+        return res.status(200).json({
           ok: 1,
           data: vendors,
         });
@@ -102,112 +110,132 @@ const vendorController = {
   },
 
   register: async (req, res, next) => {
-    const {
-      vendorName,
-      address,
-      phone,
-      avatarUrl,
-      bannerUrl,
-      categoryId,
-      description,
-      openingHour,
-    } = req.body;
-
-    if (!vendorName || !address || !phone || !openingHour) {
-      return res.json({
-        ok: 0,
-        message: 'All fields are required.',
-      });
-    }
-
-    try {
-      const user = await User.findOne({
-        where: {
-          id: req.params.id,
-        },
-      });
-      await user.update({
-        role: 'vendor',
-      });
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: err.toString(),
-      });
-    }
-
-    let params = {
-      userId: req.params.id,
-      vendorName,
-      address,
-      phone,
-      position: null,
-      avatarUrl: null,
-      bannerUrl: null,
-      categoryId,
-      description,
-      openingHour,
-    };
-    const avatar = req.files['avatar'] ? req.files['avatar'][0] : null;
-    const banner = req.files['banner'] ? req.files['banner'][0] : null;
-
-    await addressToLatLng(address, (err, location) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
       }
-      const { lat, lng } = location;
-      params.position = { type: 'Point', coordinates: [lat, lng] };
-      if (avatar || banner) {
-        const encodeAvatar = avatar ? avatar.buffer.toString('base64') : '';
-        const encodeBanner = banner ? banner.buffer.toString('base64') : '';
-        uploadMultipleImg(
-          {
-            avatar: {
-              encodeImage: encodeAvatar,
-              album: avatarAlbum,
-            },
-            banner: {
-              encodeImage: encodeBanner,
-              album: bannerAlbum,
-            },
-          },
-          (err, links) => {
-            if (err) {
-              return res.json({
-                ok: 0,
-                message: err.toString(),
-              });
-            }
-            const { avatar, banner } = links;
-            params.avatarUrl = avatar;
-            params.bannerUrl = banner;
 
-            try {
-              const vendor = Vendor.create(params);
-              if (vendor) {
+      if (decoded.payload.role) {
+        return res.json({
+          ok: 0,
+          message: 'you are already a vendor',
+        });
+      }
+      const {
+        vendorName,
+        address,
+        phone,
+        avatarUrl,
+        bannerUrl,
+        categoryId,
+        description,
+        openingHour,
+      } = req.body;
+
+      if (!vendorName || !address || !phone || !openingHour) {
+        return res.json({
+          ok: 0,
+          message: 'All fields are required.',
+        });
+      }
+
+      let params = {
+        userId: decoded.payload.userId,
+        vendorName,
+        address,
+        phone,
+        position: null,
+        avatarUrl: null,
+        bannerUrl: null,
+        categoryId,
+        description,
+        openingHour,
+      };
+      const avatar = req.files['avatar'] ? req.files['avatar'][0] : null;
+      const banner = req.files['banner'] ? req.files['banner'][0] : null;
+
+      let vendor;
+      await addressToLatLng(address, async (err, location) => {
+        if (err) {
+          return res.json({
+            ok: 0,
+            message: err.toString(),
+          });
+        }
+        const { lat, lng } = location;
+        params.position = { type: 'Point', coordinates: [lat, lng] };
+        if (avatar || banner) {
+          const encodeAvatar = avatar ? avatar.buffer.toString('base64') : '';
+          const encodeBanner = banner ? banner.buffer.toString('base64') : '';
+          uploadMultipleImg(
+            {
+              avatar: {
+                encodeImage: encodeAvatar,
+                album: avatarAlbum,
+              },
+              banner: {
+                encodeImage: encodeBanner,
+                album: bannerAlbum,
+              },
+            },
+            async (err, links) => {
+              if (err) {
                 return res.json({
-                  ok: 1,
-                  message: 'Success',
+                  ok: 0,
+                  message: err.toString(),
                 });
               }
-            } catch (err) {
-              return res.json({
-                ok: 0,
-                message: err.toString(),
-              });
+              const { avatar, banner } = links;
+              params.avatarUrl = avatar;
+              params.bannerUrl = banner;
+
+              try {
+                vendor = await Vendor.create(params);
+              } catch (err) {
+                return res.json({
+                  ok: 0,
+                  message: err.toString(),
+                });
+              }
             }
-          }
-        );
-      } else {
-        try {
-          const vendor = Vendor.create(params);
-          if (vendor) {
+          );
+        } else {
+          try {
+            vendor = await Vendor.create(params);
+          } catch (err) {
             return res.json({
+              ok: 0,
+              message: err.toString(),
+            });
+          }
+        }
+
+        try {
+          const user = await User.findOne({
+            where: {
+              id: decoded.payload.userId,
+            },
+          });
+          const response = await user.update({
+            role: 'vendor',
+            vendorId: vendor.id,
+          });
+
+          if (response) {
+            decoded.payload.vendorId = vendor.id;
+            const token = jwt.sign(
+              {
+                payload: decoded.payload,
+                exp: decoded.exp,
+              },
+              'my_secret_key'
+            );
+            return res.status(200).json({
               ok: 1,
-              message: 'Success',
+              token,
             });
           }
         } catch (err) {
@@ -216,14 +244,14 @@ const vendorController = {
             message: err.toString(),
           });
         }
-      }
+      });
     });
   },
 
   updateAuth: async (req, res, next) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
@@ -252,7 +280,7 @@ const vendorController = {
         await vendor.update({
           isSuspended: !vendor.isSuspended,
         });
-        return res.json({
+        return res.status(200).json({
           ok: 1,
           message: 'Success',
         });
@@ -266,11 +294,18 @@ const vendorController = {
   },
 
   updateVendorMe: async (req, res, next) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
+        });
+      }
+
+      if (!decoded.payload.vendorId) {
+        return res.json({
+          ok: 0,
+          message: 'you are not a vendor',
         });
       }
 
@@ -295,7 +330,7 @@ const vendorController = {
       try {
         vendor = await Vendor.findOne({
           where: {
-            userId: decoded.payload.userId,
+            vendorId: decoded.payload.vendorId,
           },
         });
       } catch (err) {
@@ -369,7 +404,7 @@ const vendorController = {
               try {
                 const result = vendor.update(params);
                 if (result) {
-                  return res.json({
+                  return res.status(200).json({
                     ok: 1,
                     message: 'Success',
                   });
@@ -386,7 +421,7 @@ const vendorController = {
           try {
             const result = vendor.update(params);
             if (result) {
-              return res.json({
+              return res.status(200).json({
                 ok: 1,
                 message: 'Success',
               });
@@ -403,9 +438,9 @@ const vendorController = {
   },
 
   updateById: async (req, res, next) => {
-    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: err.toString(),
         });
@@ -511,7 +546,7 @@ const vendorController = {
               try {
                 const result = vendor.update(params);
                 if (result) {
-                  return res.json({
+                  return res.status(200).json({
                     ok: 1,
                     message: 'Success',
                   });
@@ -528,7 +563,7 @@ const vendorController = {
           try {
             const result = vendor.update(params);
             if (result) {
-              return res.json({
+              return res.status(200).json({
                 ok: 1,
                 message: 'Success',
               });
