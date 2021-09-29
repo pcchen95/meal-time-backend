@@ -10,7 +10,10 @@ const port = process.env.PORT || 3001
 const userController = require("./controllers/user")
 const productController = require("./controllers/product")
 const orderController = require("./controllers/order")
-const vendorController = require('./controllers/vendor');
+const vendorController = require('./controllers/vendor')
+const productCategoriesController = require("./controllers/productCategories")
+const vendorCategoriesController = require("./controllers/vendorCategories")
+
 
 
 const upload = multer()
@@ -84,6 +87,26 @@ app.post("/products/new", productController.handleAdd)
 app.patch("/products/:id", productController.handleUpdate)
 app.delete("/products/:id", productController.handleDelete)
 
+
+app.get("/products-categories", productCategoriesController.getAll)
+app.post("/products-categories", productCategoriesController.newCategory)
+app.patch(
+  "/products-categories/:id",
+  productCategoriesController.updateCategory
+)
+app.delete(
+  "/products-categories/:id",
+  productCategoriesController.deleteCategory
+)
+
+app.get("/products-categories", vendorCategoriesController.getAll)
+app.post("/products-categories", vendorCategoriesController.newCategory)
+app.patch("/products-categories/:id", vendorCategoriesController.updateCategory)
+app.delete(
+  "/products-categories/:id",
+  vendorCategoriesController.deleteCategory
+)
+
 app.get("/orders", orderController.getAll)
 app.get("/orders/:id", orderController.getOne)
 app.get("/orders/buy/:id", orderController.getBuy)
@@ -93,6 +116,7 @@ app.patch("/orders/:id/complete", orderController.completeOrder)
 app.patch("/orders/:id/pay", orderController.payOrder)
 app.patch("/orders/:id/cancel", orderController.cancelOrder)
 app.delete("/orders/:id", orderController.deleteOrder)
+
 
 app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}`)
