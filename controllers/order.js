@@ -1,23 +1,37 @@
-const db = require("../models")
+const db = require('../models')
 
-const { Order, Products, OrderItems } = db
+const { Order, Product, OrderItem } = db
 
 const orderController = {
   getAll: async (req, res) => {
-    try {
-      const orders = await Order.findAll()
-      if (orders) {
+    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+      if (err) {
         return res.json({
-          ok: 1,
-          data: orders,
+          ok: 0,
+          message: err.toString(),
         })
       }
-    } catch (err) {
-      return res.send({
-        ok: 0,
-        message: err.toString(),
-      })
-    }
+      if (decoded.payload.admin !== 'admin') {
+        return res.json({
+          ok: 0,
+          message: 'you are not authorized',
+        })
+      }
+      try {
+        const orders = await Order.findAll()
+        if (orders) {
+          return res.json({
+            ok: 1,
+            data: orders,
+          })
+        }
+      } catch (err) {
+        return res.send({
+          ok: 0,
+          message: err.toString(),
+        })
+      }
+    })
   },
   getOne: async (req, res) => {
     const id = req.params.id
@@ -27,7 +41,7 @@ const orderController = {
           id,
         },
       })
-      const orderItems = await OrderItems.findAll({
+      const orderItems = await OrderItem.findAll({
         where: {
           orderId: id,
         },
@@ -55,7 +69,7 @@ const orderController = {
         include: [
           {
             model: Vendor,
-            attributes: ["vendorName", "avatarUrl", "categoryId"],
+            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
           {
             model: OrderItems,
@@ -84,7 +98,7 @@ const orderController = {
         include: [
           {
             model: Vendor,
-            attributes: ["vendorName", "avatarUrl", "categoryId"],
+            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
           {
             model: OrderItems,
@@ -126,7 +140,7 @@ const orderController = {
       })
 
       if (order) {
-        oroderProducts.forEach((productItem) => {
+        oroderProducts.forEach(async (productItem) => {
           try {
             const orderItem = await Order.create({
               productId: productItem.id,
@@ -135,11 +149,11 @@ const orderController = {
             })
             if (orderItem) {
               try {
-                const product = await Products.findOne({
+                const product = await Product.findOne({
                   where: {
                     id: product.id,
                   },
-                  attributes: ["price"],
+                  attributes: ['price'],
                 })
                 if (product) {
                   totalQuantity += orderItem.quantity
@@ -242,28 +256,42 @@ const orderController = {
     }
   },
   deleteOrder: async (req, res) => {
-    const id = req.params.id
-    try {
-      await Order.destroy({
-        where: {
-          id,
-        },
-      })
-      await OrderItems.destroy({
-        where: {
-          orderId: id,
-        },
-      })
-      return res.json({
-        ok: 1,
-        message: "Success",
-      })
-    } catch (err) {
-      return res.send({
-        ok: 0,
-        message: err.toString(),
-      })
-    }
+    jwt.verify(req.token, 'my_secret_key', async (err, decoded) => {
+      if (err) {
+        return res.json({
+          ok: 0,
+          message: err.toString(),
+        })
+      }
+      if (decoded.payload.admin !== 'admin') {
+        return res.json({
+          ok: 0,
+          message: 'you are not authorized',
+        })
+      }
+      const id = req.params.id
+      try {
+        await Order.destroy({
+          where: {
+            id,
+          },
+        })
+        await OrderItem.destroy({
+          where: {
+            orderId: id,
+          },
+        })
+        return res.json({
+          ok: 1,
+          message: 'Success',
+        })
+      } catch (err) {
+        return res.send({
+          ok: 0,
+          message: err.toString(),
+        })
+      }
+    })
   },
 }
 
