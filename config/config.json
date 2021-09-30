@@ -1,8 +1,8 @@
 {
   "development": {
-    "username": "root",
-    "password": null,
-    "database": "database_development",
+    "username": "mtr04group5",
+    "password": "Lidemymtr04group5",
+    "database": "final-project",
     "host": "127.0.0.1",
     "dialect": "mysql"
   },
