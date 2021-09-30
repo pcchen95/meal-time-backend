@@ -11,6 +11,9 @@ module.exports = (sequelize, DataTypes) => {
       User.hasOne(models.Vendor, {
         foreignKey: 'userId',
       });
+      User.belongsTo(models.Vendor, {
+        foreignKey: 'vendorId',
+      });
       User.hasMany(models.Order, {
         foreignKey: 'clientId',
       });
@@ -34,6 +37,7 @@ module.exports = (sequelize, DataTypes) => {
       phone: DataTypes.STRING,
       role: DataTypes.ENUM('all', 'member', 'vendor', 'admin', 'suspended'),
       avatarURL: DataTypes.STRING,
+      vendorId: DataTypes.INTEGER,
     },
     {
       sequelize,
