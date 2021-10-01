@@ -11,14 +11,16 @@ const port = process.env.PORT || 3001;
 const userController = require('./controllers/user');
 const vendorController = require('./controllers/vendor');
 const vendorCategoryController = require('./controllers/vendorCategory');
+const productController = require('./controllers/product')
+const orderController = require('./controllers/order')
 const faqController = require('./controllers/faq');
 const messageController = require('./controllers/message');
 
-const upload = multer();
+const upload = multer()
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'keyboard cat',
+    secret: process.env.SESSION_SECRET || "keyboard cat",
     resave: false,
     saveUninitialized: true,
   })
@@ -32,6 +34,7 @@ const vendorImgUpload = upload.fields([
 app.options('*', cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
 
 /* User */
 app.post('/users/register', upload.single('avatar'), userController.register);
@@ -166,6 +169,45 @@ app.post('/faq-categories', ensureToken, faqController.addFaqCategory);
 app.patch('/faq-categories/:id', ensureToken, faqController.updateFaqCategory);
 app.delete('/faq-categories/:id', ensureToken, faqController.deleteFaqCategory);
 
+app.get("/products/:id", productController.getInfo)
+app.get("/products", productController.getAllInfo)
+app.get("/products/vendor/:id", productController.searchByVendor)
+app.get("/products/categories/:id", productController.searchByCategory)
+app.get("/products/search/:keyword", productController.searchByKeyword)
+app.post("/products/new", productController.handleAdd)
+app.patch("/products/:id", productController.handleUpdate)
+app.delete("/products/:id", productController.handleDelete)
+
+
+app.get("/products-categories", productCategoriesController.getAll)
+app.post("/products-categories", productCategoriesController.newCategory)
+app.patch(
+  "/products-categories/:id",
+  productCategoriesController.updateCategory
+)
+app.delete(
+  "/products-categories/:id",
+  productCategoriesController.deleteCategory
+)
+
+app.get("/products-categories", vendorCategoriesController.getAll)
+app.post("/products-categories", vendorCategoriesController.newCategory)
+app.patch("/products-categories/:id", vendorCategoriesController.updateCategory)
+app.delete(
+  "/products-categories/:id",
+  vendorCategoriesController.deleteCategory
+)
+
+app.get("/orders", orderController.getAll)
+app.get("/orders/:id", orderController.getOne)
+app.get("/orders/buy/:id", orderController.getBuy)
+app.get("/orders/sell/:id", orderController.getSell)
+app.post("orders/new", orderController.newOrder)
+app.patch("/orders/:id/complete", orderController.completeOrder)
+app.patch("/orders/:id/pay", orderController.payOrder)
+app.patch("/orders/:id/cancel", orderController.cancelOrder)
+app.delete("/orders/:id", orderController.deleteOrder)
+
 app.listen(port, () => {
-  console.log(`Listening at http://localhost:${port}`);
-});
+  console.log(`Listening at http://localhost:${port}`)
+})
