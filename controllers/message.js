@@ -2,7 +2,7 @@ const db = require('../models');
 const jwt = require('jsonwebtoken');
 const secretKey = require('../auth/secretKey');
 
-const { Vendor, User, Message, MessageToAdmin } = db;
+const { Vendor, User, Message, MessageToAdmin, ReportMessage } = db;
 
 const messageController = {
   getClientMessage: (req, res) => {
@@ -27,7 +27,7 @@ const messageController = {
           data: message,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -56,7 +56,7 @@ const messageController = {
           data: messages,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -74,6 +74,12 @@ const messageController = {
       }
 
       let { content } = req.body;
+      if (!content) {
+        return res.status(400).json({
+          ok: 0,
+          message: 'content is required',
+        });
+      }
       try {
         const message = await Message.findOne({
           where: {
@@ -99,7 +105,7 @@ const messageController = {
               });
             }
           } catch (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
@@ -128,14 +134,14 @@ const messageController = {
               });
             }
           } catch (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
           }
         }
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -165,7 +171,7 @@ const messageController = {
           data: message,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -194,7 +200,7 @@ const messageController = {
           data: messages,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -212,6 +218,12 @@ const messageController = {
       }
 
       let { content } = req.body;
+      if (!content) {
+        return res.status(400).json({
+          ok: 0,
+          message: 'content is required',
+        });
+      }
       let message;
       try {
         const message = await Message.findOne({
@@ -221,7 +233,7 @@ const messageController = {
           },
         });
         if (!message) {
-          return res.json({
+          return res.status(500).json({
             ok: 0,
             message: 'no result',
           });
@@ -249,13 +261,13 @@ const messageController = {
             });
           }
         } catch (err) {
-          return res.json({
+          return res.status(500).json({
             ok: 0,
             message: err.toString(),
           });
         }
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -284,7 +296,7 @@ const messageController = {
           data: message,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -302,6 +314,12 @@ const messageController = {
       }
 
       let { content } = req.body;
+      if (!content) {
+        return res.status(400).json({
+          ok: 0,
+          message: 'content is required',
+        });
+      }
       try {
         const message = await MessageToAdmin.findOne({
           where: {
@@ -325,7 +343,7 @@ const messageController = {
               });
             }
           } catch (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
@@ -354,14 +372,14 @@ const messageController = {
               });
             }
           } catch (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
           }
         }
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -379,7 +397,7 @@ const messageController = {
       }
 
       if (decoded.payload.role !== 'admin') {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
         });
@@ -397,7 +415,7 @@ const messageController = {
           data: message,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -415,7 +433,7 @@ const messageController = {
       }
 
       if (decoded.payload.role !== 'admin') {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
         });
@@ -429,7 +447,7 @@ const messageController = {
           data: messages,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -447,13 +465,19 @@ const messageController = {
       }
 
       if (decoded.payload.role !== 'admin') {
-        return res.json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
         });
       }
 
       let { content } = req.body;
+      if (!content) {
+        return res.status(400).json({
+          ok: 0,
+          message: 'content is required',
+        });
+      }
       try {
         const message = await MessageToAdmin.findOne({
           where: {
@@ -477,7 +501,7 @@ const messageController = {
               });
             }
           } catch (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
@@ -506,14 +530,121 @@ const messageController = {
               });
             }
           } catch (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
           }
         }
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+    });
+  },
+
+  reportToAdmin: (req, res) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+
+      let { reportedVendorId, reportedProductId, content } = req.body;
+      if (!reportedVendorId || !content) {
+        return res.status(400).json({
+          ok: 0,
+          message: 'reportedVendorId and content are required',
+        });
+      }
+      try {
+        const response = await ReportMessage.create({
+          userId: decoded.payload.userId,
+          reportedVendorId,
+          reportedProductId,
+          content,
+        });
+
+        if (response) {
+          return res.status(200).json({
+            ok: 1,
+            message: 'Success',
+          });
+        }
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+    });
+  },
+
+  getReportMessage: (req, res) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+
+      if (decoded.payload.role !== 'admin') {
+        return res.status(401).json({
+          ok: 0,
+          message: 'you are not authorized',
+        });
+      }
+
+      try {
+        const message = await ReportMessage.findOne({
+          where: {
+            userId: req.params.id,
+          },
+        });
+
+        return res.status(200).json({
+          ok: 1,
+          data: message,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+    });
+  },
+
+  getAllReportMessages: (req, res) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+
+      if (decoded.payload.role !== 'admin') {
+        return res.status(401).json({
+          ok: 0,
+          message: 'you are not authorized',
+        });
+      }
+
+      try {
+        const messages = await ReportMessage.findAll();
+
+        return res.status(200).json({
+          ok: 1,
+          data: messages,
+        });
+      } catch (err) {
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
