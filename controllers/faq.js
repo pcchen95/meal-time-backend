@@ -20,7 +20,7 @@ const faqController = {
         data: faqs,
       });
     } catch (err) {
-      return res.json({
+      return res.status(500).json({
         ok: 0,
         message: err.toString(),
       });
@@ -59,7 +59,7 @@ const faqController = {
           data: faq,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -84,7 +84,7 @@ const faqController = {
 
       const { question, categoryId, answer } = req.body;
       if (!question || !categoryId || !answer) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'question, categoryId, answer are required',
         });
@@ -104,7 +104,7 @@ const faqController = {
           });
         }
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -129,7 +129,7 @@ const faqController = {
 
       const { question, categoryId, answer } = req.body;
       if (!question || !categoryId || !answer) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'question, categoryId, answer are required',
         });
@@ -144,7 +144,7 @@ const faqController = {
           },
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -163,7 +163,7 @@ const faqController = {
           });
         }
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -194,7 +194,7 @@ const faqController = {
           },
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -209,7 +209,7 @@ const faqController = {
           });
         }
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -228,7 +228,7 @@ const faqController = {
         data: categories,
       });
     } catch (err) {
-      return res.json({
+      return res.status(500).json({
         ok: 0,
         message: err.toString(),
       });
@@ -263,7 +263,7 @@ const faqController = {
           data: category,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -288,7 +288,7 @@ const faqController = {
 
       const { name } = req.body;
       if (!name) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'name is required',
         });
@@ -306,7 +306,7 @@ const faqController = {
           });
         }
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -331,7 +331,7 @@ const faqController = {
 
       const { name } = req.body;
       if (!name) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'name is required',
         });
@@ -345,7 +345,7 @@ const faqController = {
           },
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -362,7 +362,7 @@ const faqController = {
           });
         }
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -393,7 +393,7 @@ const faqController = {
           },
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -408,7 +408,7 @@ const faqController = {
           });
         }
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });

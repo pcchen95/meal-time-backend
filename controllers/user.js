@@ -39,7 +39,7 @@ const userController = {
           data: user,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -81,7 +81,7 @@ const userController = {
           data: user,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -120,7 +120,7 @@ const userController = {
           data: users,
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -129,22 +129,13 @@ const userController = {
   },
 
   register: async (req, res, next) => {
-    const { nickname, username, password, confirmPassword, email, phone } =
-      req.body;
+    const { nickname, username, password, email, phone } = req.body;
     const avatar = req.file;
 
-    if (
-      !nickname ||
-      !username ||
-      !password ||
-      !confirmPassword ||
-      !email ||
-      !phone
-    ) {
-      return res.json({
+    if (!nickname || !username || !password || !email || !phone) {
+      return res.status(400).json({
         ok: 0,
-        message:
-          'nickname, username, password, confirmPassword, email, phone are required',
+        message: 'nickname, username, password, email, phone are required',
       });
     }
 
@@ -155,28 +146,21 @@ const userController = {
         },
       });
       if (user) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'username is duplicated',
         });
       }
     } catch (err) {
-      return res.json({
+      return res.status(500).json({
         ok: 0,
         message: err.toString(),
       });
     }
 
-    if (password !== confirmPassword) {
-      return res.json({
-        ok: 0,
-        message: 'password and confirmPassword are inconsistent',
-      });
-    }
-
     bcrypt.hash(password, saltRounds, async (err, hash) => {
       if (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -186,7 +170,7 @@ const userController = {
         const encodeImage = avatar.buffer.toString('base64');
         uploadImg(encodeImage, album, async (err, link) => {
           if (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
@@ -209,7 +193,7 @@ const userController = {
               });
             }
           } catch (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
@@ -232,7 +216,7 @@ const userController = {
             });
           }
         } catch (err) {
-          return res.json({
+          return res.status(500).json({
             ok: 0,
             message: err.toString(),
           });
@@ -244,7 +228,7 @@ const userController = {
   login: async (req, res, next) => {
     const { username, password } = req.body;
     if (!username || !password) {
-      return res.json({
+      return res.status(400).json({
         ok: 0,
         message: 'username and password are required',
       });
@@ -257,13 +241,13 @@ const userController = {
         },
       });
     } catch (err) {
-      return res.json({
+      return res.status(500).json({
         ok: 0,
         message: err.toString(),
       });
     }
     if (!user) {
-      return res.json({
+      return res.status(400).json({
         ok: 0,
         message: 'username does not exist',
       });
@@ -271,13 +255,13 @@ const userController = {
 
     bcrypt.compare(password, user.password, (err, isSuccess) => {
       if (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
       }
       if (!isSuccess) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'password is wrong',
         });
@@ -316,7 +300,7 @@ const userController = {
       const avatar = req.file;
 
       if (!nickname || !email || !phone) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'nickname, email, phone are required',
         });
@@ -330,7 +314,7 @@ const userController = {
           },
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -344,7 +328,7 @@ const userController = {
       if (avatar) {
         deleteImg(user.avatarURL, (err) => {
           if (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
@@ -353,7 +337,7 @@ const userController = {
         const encodeImage = avatar.buffer.toString('base64');
         uploadImg(encodeImage, album, async (err, link) => {
           if (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
@@ -367,9 +351,9 @@ const userController = {
               message: 'Success',
             });
           } catch (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
-              message: 'Failed',
+              message: err.toString(),
             });
           }
         });
@@ -381,9 +365,9 @@ const userController = {
             message: 'Success',
           });
         } catch (err) {
-          return res.json({
+          return res.status(500).json({
             ok: 0,
-            message: 'Failed',
+            message: err.toString(),
           });
         }
       }
@@ -408,7 +392,7 @@ const userController = {
       const avatar = req.file;
 
       if (!nickname || !email || !phone) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'nickname, email, phone are required',
         });
@@ -422,7 +406,7 @@ const userController = {
           },
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -436,7 +420,7 @@ const userController = {
       if (avatar) {
         deleteImg(user.avatarURL, (err) => {
           if (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
@@ -445,7 +429,7 @@ const userController = {
         const encodeImage = avatar.buffer.toString('base64');
         uploadImg(encodeImage, album, async (err, link) => {
           if (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
@@ -459,9 +443,9 @@ const userController = {
               message: 'Success',
             });
           } catch (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
-              message: 'Failed',
+              message: err.toString(),
             });
           }
         });
@@ -473,9 +457,9 @@ const userController = {
             message: 'Success',
           });
         } catch (err) {
-          return res.json({
+          return res.status(500).json({
             ok: 0,
-            message: 'Failed',
+            message: err.toString(),
           });
         }
       }
@@ -504,7 +488,7 @@ const userController = {
           },
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
@@ -520,9 +504,9 @@ const userController = {
           message: 'Success',
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
-          message: 'Failed',
+          message: err.toString(),
         });
       }
     });
@@ -539,21 +523,21 @@ const userController = {
 
       const { oldPassword, newPassword, confirmPassword } = req.body;
       if (!oldPassword || !newPassword || !confirmPassword) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'oldPassword, newPassword, confirmPassword is required',
         });
       }
 
       if (oldPassword === newPassword) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'oldPassword and newPassword are the same.',
         });
       }
 
       if (newPassword !== confirmPassword) {
-        return res.json({
+        return res.status(400).json({
           ok: 0,
           message: 'newPassword and confirmPassword are inconsistent.',
         });
@@ -568,14 +552,14 @@ const userController = {
 
         bcrypt.compare(oldPassword, user.password, (err, isSuccess) => {
           if (err) {
-            return res.json({
+            return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
           }
 
           if (!isSuccess) {
-            return res.json({
+            return res.status(400).json({
               ok: 0,
               message: 'oldPassword is wrong',
             });
@@ -583,7 +567,7 @@ const userController = {
 
           bcrypt.hash(newPassword, saltRounds, async (err, hash) => {
             if (err) {
-              return res.json({
+              return res.status(500).json({
                 ok: 0,
                 message: err.toString(),
               });
@@ -598,15 +582,15 @@ const userController = {
                 message: 'Success',
               });
             } catch (err) {
-              return res.json({
+              return res.status(500).json({
                 ok: 0,
-                message: 'Failed',
+                message: err.toString(),
               });
             }
           });
         });
       } catch (err) {
-        return res.json({
+        return res.status(500).json({
           ok: 0,
           message: err.toString(),
         });
