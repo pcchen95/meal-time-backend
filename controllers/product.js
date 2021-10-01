@@ -1,9 +1,10 @@
-const { Op } = require("sequelize")
-const db = require("../models")
-const { uploadImg, deleteImg } = require("./imgur.js")
-
-const { Product } = db
-const album = "gpxFA0k"
+const { Op } = require('sequelize')
+const db = require('../models')
+const { uploadImg, deleteImg } = require('./imgur.js')
+const jwt = require('jsonwebtoken')
+const secretKey = require('../auth/secretKey')
+const { Product, ProductCategory, Vendor } = db
+const album = 'gpxFA0k'
 
 const productController = {
   getInfo: async (req, res) => {
@@ -15,27 +16,27 @@ const productController = {
         },
         include: [
           {
-            model: ProductCategories,
+            model: ProductCategory,
           },
           {
             model: Vendor,
-            attributes: ["vendorName", "avatarUrl", "categoryId"],
+            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
       })
-      return res.json({
+      return res.status(200).json({
         ok: 1,
         data: procuct,
       })
     } catch (err) {
-      return res.send({
+      return res.status(500).json({
         ok: 0,
         message: err.toString(),
       })
     }
   },
 
-  searchByVendor: async (req, res) => {
+  getByVendor: async (req, res) => {
     const id = req.params.id
     try {
       const procucts = await Product.findAll({
@@ -44,27 +45,27 @@ const productController = {
         },
         include: [
           {
-            model: ProductCategories,
+            model: ProductCategory,
           },
           {
             model: Vendor,
-            attributes: ["vendorName", "avatarUrl", "categoryId"],
+            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
       })
-      return res.json({
+      return res.status(200).json({
         ok: 1,
         data: procucts,
       })
     } catch (err) {
-      return res.send({
+      return res.status(500).json({
         ok: 0,
         message: err.toString(),
       })
     }
   },
 
-  searchByCategory: async (req, res) => {
+  getByCategory: async (req, res) => {
     const id = req.params.id
     try {
       const procucts = await Product.findAll({
@@ -73,20 +74,20 @@ const productController = {
         },
         include: [
           {
-            model: ProductCategories,
+            model: ProductCategory,
           },
           {
             model: Vendor,
-            attributes: ["vendorName", "avatarUrl", "categoryId"],
+            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
       })
-      return res.json({
+      return res.status(200).json({
         ok: 1,
         data: procucts,
       })
     } catch (err) {
-      return res.send({
+      return res.status(500).json({
         ok: 0,
         message: err.toString(),
       })
@@ -98,20 +99,20 @@ const productController = {
       const products = await Product.findAll({
         include: [
           {
-            model: ProductCategories,
+            model: ProductCategory,
           },
           {
             model: Vendor,
-            attributes: ["vendorName", "avatarUrl", "categoryId"],
+            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
       })
-      return res.json({
+      return res.status(200).json({
         ok: 1,
         data: products,
       })
     } catch (err) {
-      return res.send({
+      return res.status(500).json({
         ok: 0,
         message: err.toString(),
       })
@@ -121,22 +122,17 @@ const productController = {
   searchByKeyword: async (req, res) => {
     const keyword = req.query.keyword
     try {
-      const productCategories = await productCategories.findAll({
+      const productCategories = await ProductCategory.findAll({
         where: {
           name: {
             [Op.substring]: keyword,
           },
         },
       })
-    } catch (err) {
-      return res.send({
-        ok: 0,
-        message: err.toString(),
-      })
-    }
-
-    try {
-      const procucts = await Product.findAll({
+      const productCategoriesList = productCategories.map(
+        (category) => category.id
+      )
+      const products = await Product.findAll({
         where: {
           [Op.or]: [
             {
@@ -151,141 +147,198 @@ const productController = {
             },
             {
               categoryId: {
-                [Op.in]: productCategories.map((category) => category.id),
+                [Op.in]: productCategoriesList,
               },
             },
           ],
+          quantity: {
+            [Op.gt]: 0,
+          },
         },
         include: [
           {
-            model: ProductCategories,
+            model: ProductCategory,
           },
           {
             model: Vendor,
-            attributes: ["vendorName", "avatarUrl", "categoryId"],
+            attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
       })
-      return res.json({
+      if (!products) {
+        throw new Error()
+      }
+      return res.status(200).json({
         ok: 1,
-        data: procucts,
+        data: products,
       })
     } catch (err) {
-      return res.send({
+      return res.status(500).json({
         ok: 0,
         message: err.toString(),
       })
     }
   },
 
-  handleAdd: async (req, res) => {
-    const {
-      vendorId,
-      name,
-      categoryId,
-      price,
-      quantity,
-      manufactureDate,
-      expiryDate,
-      description,
-      isAvailable,
-    } = req.body.productData
-    const picture = req.file
-    try {
-      if (picture) {
-        const encodeImage = avatar.buffer.toString("base64")
-        uploadImg(encodeImage, album, (err, link) => {
-          await Product.create({
-            vendorId,
-            name,
-            categoryId,
-            pictureUrl: link,
-            price,
-            quantity,
-            manufactureDate,
-            expiryDate,
-            description,
-            isAvailable,
-          })
-          return res.json({
-            ok: 1,
-            message: "Success",
-          })
+  addProduct: async (req, res) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
         })
       }
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: err.toString(),
-      })
-    }
+      console.log(decoded.payload)
+      const vendorId = decoded.payload.vendorId
+      const {
+        name,
+        categoryId,
+        price,
+        quantity,
+        manufactureDate,
+        expiryDate,
+        description,
+        isAvailable,
+      } = req.body
+      const picture = req.file
+      try {
+        if (picture) {
+          const encodeImage = picture.buffer.toString('base64')
+          uploadImg(encodeImage, album, async (err, link) => {
+            await Product.create({
+              vendorId,
+              name,
+              categoryId,
+              pictureUrl: link,
+              price,
+              quantity,
+              manufactureDate,
+              expiryDate,
+              description,
+              isAvailable,
+            })
+            return res.json({
+              ok: 1,
+              message: 'Success',
+            })
+          })
+        }
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        })
+      }
+    })
   },
 
-  handleUpdate: async (req, res) => {
-    const id = req.params.id
-    const {
-      name,
-      categoryId,
-      price,
-      quantity,
-      manufactureDate,
-      expiryDate,
-      description,
-      isAvailable,
-    } = req.body.productData
-    const picture = req.file
-    try {
-      if (picture) {
-        const encodeImage = avatar.buffer.toString("base64")
-        uploadImg(encodeImage, album, (err, link) => {
-          const updateProduct = await Product.findOne({
-            where: {
-              id,
-            },
+  updateProduct: async (req, res) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        })
+      }
+      const vendorId = decoded.payload.vendorId
+      const id = req.params.id
+      const {
+        name,
+        categoryId,
+        price,
+        quantity,
+        manufactureDate,
+        expiryDate,
+        description,
+        isAvailable,
+      } = req.body
+      const picture = req.file
+      try {
+        const updateProduct = await Product.findOne({
+          where: {
+            id,
+            vendorId,
+          },
+        })
+        if (picture) {
+          deleteImg(updateProduct.pictureUrl, (err) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              })
+            }
           })
+          const encodeImage = picture.buffer.toString('base64')
+          uploadImg(encodeImage, album, async (err, link) => {
+            updateProduct.pictureUrl = link
+            if (name) updateProduct.name = name
+            if (categoryId) updateProduct.categoryId = categoryId
+            if (price) updateProduct.price = price
+            if (quantity) updateProduct.quantity = quantity
+            if (manufactureDate) updateProduct.manufactureDate = manufactureDate
+            if (expiryDate) updateProduct.expiryDate = expiryDate
+            if (description) updateProduct.description = description
+            if (isAvailable) updateProduct.isAvailable = isAvailable
+
+            await updateProduct.save()
+            return res.status(200).json({
+              ok: 1,
+              message: 'Success',
+            })
+          })
+        } else {
           if (name) updateProduct.name = name
           if (categoryId) updateProduct.categoryId = categoryId
-          if (pictureUrl) updateProduct.pictureUrl = pictureUrl
           if (price) updateProduct.price = price
           if (quantity) updateProduct.quantity = quantity
           if (manufactureDate) updateProduct.manufactureDate = manufactureDate
           if (expiryDate) updateProduct.expiryDate = expiryDate
           if (description) updateProduct.description = description
           if (isAvailable) updateProduct.isAvailable = isAvailable
-
           await updateProduct.save()
-          return res.json({
+          return res.status(200).json({
             ok: 1,
-            message: "Success",
+            message: 'Success',
           })
+        }
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
         })
       }
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: err.toString(),
-      })
-    }
+    })
   },
 
-  handleDelete: async (req, res) => {
-    const id = req.params.id
-    try {
-      await Product.destroy({
-        where: {
-          id,
-        },
-      })
-      return res.json({
-        ok: 1,
-        message: "Success",
-      })
-    } catch (err) {
-      return res.json({
-        ok: 0,
-        message: err.toString(),
-      })
-    }
+  deleteProduct: async (req, res) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        })
+      }
+      const vendorId = decoded.payload.vendorId
+      const id = req.params.id
+      try {
+        await Product.destroy({
+          where: {
+            id,
+            vendorId,
+          },
+        })
+        return res.status(200).json({
+          ok: 1,
+          message: 'Success',
+        })
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        })
+      }
+    })
   },
 }
 
