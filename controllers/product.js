@@ -38,9 +38,22 @@ const productController = {
 
   getByVendor: async (req, res) => {
     const id = req.params.id
+    let { _page, _limit, _sort, _order } = req.query
+    const page = Number(_page) || 1
+    let offset = 0
+    if (page) {
+      offset = (page - 1) * (_limit ? parseInt(_limit) : 10)
+    }
+    const sort = _sort || 'id'
+    const order = _order || 'DESC'
+    const limit = _limit ? parseInt(_limit) : 10
     try {
       const procucts = await Product.findAll({
         where: {
+          quantity: {
+            [Op.gt]: 0,
+          },
+          isAvailable: true,
           vendorId: id,
         },
         include: [
@@ -52,6 +65,9 @@ const productController = {
             attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
+        limit,
+        offset,
+        order: [[sort, order]],
       })
       return res.status(200).json({
         ok: 1,
@@ -67,9 +83,22 @@ const productController = {
 
   getByCategory: async (req, res) => {
     const id = req.params.id
+    let { _page, _limit, _sort, _order } = req.query
+    const page = Number(_page) || 1
+    let offset = 0
+    if (page) {
+      offset = (page - 1) * (_limit ? parseInt(_limit) : 10)
+    }
+    const sort = _sort || 'id'
+    const order = _order || 'DESC'
+    const limit = _limit ? parseInt(_limit) : 10
     try {
       const procucts = await Product.findAll({
         where: {
+          quantity: {
+            [Op.gt]: 0,
+          },
+          isAvailable: true,
           categoryId: id,
         },
         include: [
@@ -81,6 +110,9 @@ const productController = {
             attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
+        limit,
+        offset,
+        order: [[sort, order]],
       })
       return res.status(200).json({
         ok: 1,
@@ -95,8 +127,23 @@ const productController = {
   },
 
   getAllInfo: async (req, res) => {
+    let { _page, _limit, _sort, _order } = req.query
+    const page = Number(_page) || 1
+    let offset = 0
+    if (page) {
+      offset = (page - 1) * (_limit ? parseInt(_limit) : 10)
+    }
+    const sort = _sort || 'id'
+    const order = _order || 'DESC'
+    const limit = _limit ? parseInt(_limit) : 10
     try {
       const products = await Product.findAll({
+        where: {
+          quantity: {
+            [Op.gt]: 0,
+          },
+          isAvailable: true,
+        },
         include: [
           {
             model: ProductCategory,
@@ -106,6 +153,9 @@ const productController = {
             attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
+        limit,
+        offset,
+        order: [[sort, order]],
       })
       return res.status(200).json({
         ok: 1,
@@ -120,7 +170,15 @@ const productController = {
   },
 
   searchByKeyword: async (req, res) => {
-    const keyword = req.query.keyword
+    let { _page, _limit, _sort, _order, keyword } = req.query
+    const page = Number(_page) || 1
+    let offset = 0
+    if (page) {
+      offset = (page - 1) * (_limit ? parseInt(_limit) : 10)
+    }
+    const sort = _sort || 'id'
+    const order = _order || 'DESC'
+    const limit = _limit ? parseInt(_limit) : 10
     try {
       const productCategories = await ProductCategory.findAll({
         where: {
@@ -134,6 +192,10 @@ const productController = {
       )
       const products = await Product.findAll({
         where: {
+          quantity: {
+            [Op.gt]: 0,
+          },
+          isAvailable: true,
           [Op.or]: [
             {
               name: {
@@ -151,9 +213,6 @@ const productController = {
               },
             },
           ],
-          quantity: {
-            [Op.gt]: 0,
-          },
         },
         include: [
           {
@@ -164,6 +223,9 @@ const productController = {
             attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
+        limit,
+        offset,
+        order: [[sort, order]],
       })
       if (!products) {
         throw new Error()
@@ -188,7 +250,6 @@ const productController = {
           message: err.toString(),
         })
       }
-      console.log(decoded.payload)
       const vendorId = decoded.payload.vendorId
       const {
         name,
@@ -205,7 +266,7 @@ const productController = {
         if (picture) {
           const encodeImage = picture.buffer.toString('base64')
           uploadImg(encodeImage, album, async (err, link) => {
-            await Product.create({
+            const product = await Product.create({
               vendorId,
               name,
               categoryId,
@@ -217,9 +278,12 @@ const productController = {
               description,
               isAvailable,
             })
-            return res.json({
+            return res.status(200).json({
               ok: 1,
               message: 'Success',
+              data: {
+                productId: product.id,
+              },
             })
           })
         }
@@ -285,6 +349,9 @@ const productController = {
             return res.status(200).json({
               ok: 1,
               message: 'Success',
+              data: {
+                productId: updateProduct.id,
+              },
             })
           })
         } else {
