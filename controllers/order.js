@@ -112,10 +112,11 @@ const orderController = {
       const _offset = (_page - 1) * _limit
       const _sort = sort || 'id'
       const _order = order || 'DESC'
+      const queriedUser = req.query.clientId
+        ? req.query.clientId
+        : decoded.payload.userId
       const clientId =
-        decoded.payload.role === 'admin'
-          ? req.query.clientId
-          : decoded.payload.userId
+        decoded.payload.role === 'admin' ? queriedUser : decoded.payload.userId
       try {
         const orders = await Order.findAll({
           where: {
@@ -157,9 +158,12 @@ const orderController = {
       const _offset = (_page - 1) * _limit
       const _sort = sort || 'id'
       const _order = order || 'DESC'
+      const queriedUser = req.query.vendorId
+        ? req.query.vendorId
+        : decoded.payload.userId
       const vendorId =
         decoded.payload.role === 'admin'
-          ? req.query.vendorId
+          ? queriedUser
           : decoded.payload.vendorId
       try {
         const orders = await Order.findAll({
