@@ -38,15 +38,12 @@ const productController = {
 
   getByVendor: async (req, res) => {
     const id = req.params.id
-    let { _page, _limit, _sort, _order } = req.query
-    const page = Number(_page) || 1
-    let offset = 0
-    if (page) {
-      offset = (page - 1) * (_limit ? parseInt(_limit) : 10)
-    }
-    const sort = _sort || 'id'
-    const order = _order || 'DESC'
-    const limit = _limit ? parseInt(_limit) : 10
+    let { page, limit, sort, order } = req.query
+    const _page = Number(page) || 1
+    const _limit = limit ? parseInt(limit) : 10
+    const _offset = (_page - 1) * _limit
+    const _sort = sort || 'id'
+    const _order = order || 'DESC'
     try {
       const procucts = await Product.findAll({
         where: {
@@ -65,9 +62,9 @@ const productController = {
             attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
-        limit,
-        offset,
-        order: [[sort, order]],
+        limit: _limit,
+        offset: _offset,
+        order: [[_sort, _order]],
       })
       return res.status(200).json({
         ok: 1,
@@ -83,15 +80,12 @@ const productController = {
 
   getByCategory: async (req, res) => {
     const id = req.params.id
-    let { _page, _limit, _sort, _order } = req.query
-    const page = Number(_page) || 1
-    let offset = 0
-    if (page) {
-      offset = (page - 1) * (_limit ? parseInt(_limit) : 10)
-    }
-    const sort = _sort || 'id'
-    const order = _order || 'DESC'
-    const limit = _limit ? parseInt(_limit) : 10
+    let { page, limit, sort, order } = req.query
+    const _page = Number(page) || 1
+    const _limit = limit ? parseInt(limit) : 10
+    const _offset = (_page - 1) * _limit
+    const _sort = sort || 'id'
+    const _order = order || 'DESC'
     try {
       const procucts = await Product.findAll({
         where: {
@@ -110,9 +104,9 @@ const productController = {
             attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
-        limit,
-        offset,
-        order: [[sort, order]],
+        limit: _limit,
+        offset: _offset,
+        order: [[_sort, _order]],
       })
       return res.status(200).json({
         ok: 1,
@@ -127,15 +121,12 @@ const productController = {
   },
 
   getAllInfo: async (req, res) => {
-    let { _page, _limit, _sort, _order } = req.query
-    const page = Number(_page) || 1
-    let offset = 0
-    if (page) {
-      offset = (page - 1) * (_limit ? parseInt(_limit) : 10)
-    }
-    const sort = _sort || 'id'
-    const order = _order || 'DESC'
-    const limit = _limit ? parseInt(_limit) : 10
+    let { page, limit, sort, order } = req.query
+    const _page = Number(page) || 1
+    const _limit = limit ? parseInt(limit) : 10
+    const _offset = (_page - 1) * _limit
+    const _sort = sort || 'id'
+    const _order = order || 'DESC'
     try {
       const products = await Product.findAll({
         where: {
@@ -153,9 +144,9 @@ const productController = {
             attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
-        limit,
-        offset,
-        order: [[sort, order]],
+        limit: _limit,
+        offset: _offset,
+        order: [[_sort, _order]],
       })
       return res.status(200).json({
         ok: 1,
@@ -170,15 +161,12 @@ const productController = {
   },
 
   searchByKeyword: async (req, res) => {
-    let { _page, _limit, _sort, _order, keyword } = req.query
-    const page = Number(_page) || 1
-    let offset = 0
-    if (page) {
-      offset = (page - 1) * (_limit ? parseInt(_limit) : 10)
-    }
-    const sort = _sort || 'id'
-    const order = _order || 'DESC'
-    const limit = _limit ? parseInt(_limit) : 10
+    let { page, limit, sort, order, keyword } = req.query
+    const _page = Number(page) || 1
+    const _limit = limit ? parseInt(limit) : 10
+    const _offset = (_page - 1) * _limit
+    const _sort = sort || 'id'
+    const _order = order || 'DESC'
     try {
       const productCategories = await ProductCategory.findAll({
         where: {
@@ -223,9 +211,9 @@ const productController = {
             attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
-        limit,
-        offset,
-        order: [[sort, order]],
+        limit: _limit,
+        offset: _offset,
+        order: [[_sort, _order]],
       })
       if (!products) {
         throw new Error()
