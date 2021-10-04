@@ -246,6 +246,7 @@ app.delete(
   vendorCategoryController.deleteCategory
 );
 
+
 app.get('/orders', ensureToken, orderController.getAll);
 app.get('/orders/buy', ensureToken, orderController.getBuy);
 app.get('/orders/sell', ensureToken, orderController.getSell);
