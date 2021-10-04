@@ -236,10 +236,10 @@ app.delete(
 app.get('/orders', ensureToken, orderController.getAll)
 app.get('/orders/buy', ensureToken, orderController.getBuy)
 app.get('/orders/sell', ensureToken, orderController.getSell)
-app.get('/orders/:id', ensureToken, orderController.getOne)
 app.post('/orders', ensureToken, orderController.addOrder)
 app.patch('/orders/complete/:id', ensureToken, orderController.completeOrder)
 app.patch('/orders/cancel/:id', ensureToken, orderController.cancelOrder)
+app.get('/orders/:id', ensureToken, orderController.getOne)
 app.delete('/orders/:id', ensureToken, orderController.deleteOrder)
 
 app.listen(port, () => {
