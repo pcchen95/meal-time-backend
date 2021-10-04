@@ -6,13 +6,27 @@ const { Faq, FaqCategory } = db;
 
 const faqController = {
   getAllFaqs: async (req, res) => {
+    let { _page, _limit, _sort, _order, categoryId } = req.query;
+    const page = Number(_page) || 1;
+    let offset = 0;
+    if (page) {
+      offset = (page - 1) * (_limit ? parseInt(_limit) : 10);
+    }
+    const sort = _sort || 'id';
+    const order = _order || 'DESC';
+    const limit = _limit ? parseInt(_limit) : 10;
+
     try {
       const faqs = await Faq.findAll({
+        where: categoryId ? { categoryId } : {},
         include: {
           model: FaqCategory,
           attributes: ['name'],
         },
         attributes: ['id', 'question', 'categoryId', 'answer'],
+        limit,
+        offset,
+        order: [[sort, order]],
       });
 
       return res.status(200).json({
@@ -218,9 +232,22 @@ const faqController = {
   },
 
   getAllFaqCategories: async (req, res) => {
+    let { _page, _limit, _sort, _order } = req.query;
+    const page = Number(_page) || 1;
+    let offset = 0;
+    if (page) {
+      offset = (page - 1) * (_limit ? parseInt(_limit) : 10);
+    }
+    const sort = _sort || 'id';
+    const order = _order || 'DESC';
+    const limit = _limit ? parseInt(_limit) : 10;
+
     try {
       const categories = await FaqCategory.findAll({
         attributes: ['id', 'name'],
+        limit,
+        offset,
+        order: [[sort, order]],
       });
 
       return res.status(200).json({

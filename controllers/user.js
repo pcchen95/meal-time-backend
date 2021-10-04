@@ -97,14 +97,28 @@ const userController = {
           message: err.toString(),
         });
       }
+
       if (decoded.payload.role !== 'admin') {
+        console.log(123);
         return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
         });
       }
+
+      let { _page, _limit, _sort, _order, role } = req.query;
+      const page = Number(_page) || 1;
+      let offset = 0;
+      if (page) {
+        offset = (page - 1) * (_limit ? parseInt(_limit) : 10);
+      }
+      const sort = _sort || 'id';
+      const order = _order || 'DESC';
+      const limit = _limit ? parseInt(_limit) : 10;
+
       try {
         let users = await User.findAll({
+          where: role ? { role } : {},
           attributes: [
             'id',
             'nickname',
@@ -114,6 +128,9 @@ const userController = {
             'avatarURL',
             'role',
           ],
+          limit,
+          offset,
+          order: [[sort, order]],
         });
         return res.status(200).json({
           ok: 1,
@@ -187,9 +204,24 @@ const userController = {
             });
 
             if (user) {
+              const payload = {
+                userId: user.id,
+                username: user.username,
+                role: 'member',
+                vendorId: null,
+              };
+
+              const token = jwt.sign(
+                {
+                  payload,
+                  exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+                },
+                secretKey
+              );
+
               return res.status(200).json({
                 ok: 1,
-                message: 'Success',
+                token,
               });
             }
           } catch (err) {
@@ -210,9 +242,24 @@ const userController = {
           });
 
           if (user) {
+            const payload = {
+              userId: user.id,
+              username: user.username,
+              role: 'member',
+              vendorId: null,
+            };
+
+            const token = jwt.sign(
+              {
+                payload,
+                exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+              },
+              secretKey
+            );
+
             return res.status(200).json({
               ok: 1,
-              message: 'Success',
+              token,
             });
           }
         } catch (err) {
@@ -296,7 +343,7 @@ const userController = {
           message: err.toString(),
         });
       }
-      const { nickname, email, phone } = req.body;
+      const { nickname, email, phone, isDeleteAvatar } = req.body;
       const avatar = req.file;
 
       if (!nickname || !email || !phone) {
@@ -358,6 +405,17 @@ const userController = {
           }
         });
       } else {
+        if (isDeleteAvatar) {
+          deleteImg(user.avatarURL, (err) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          });
+          params.avatarURL = null;
+        }
         try {
           await user.update(params);
           return res.status(200).json({
