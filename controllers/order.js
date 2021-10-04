@@ -6,7 +6,6 @@ const { Order, Product, OrderItem, Vendor } = db
 
 const orderController = {
   getAll: async (req, res) => {
-    //測試完成
     jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
         return res.status(401).json({
@@ -14,6 +13,12 @@ const orderController = {
           message: err.toString(),
         })
       }
+      let { page, limit, sort, order } = req.query
+      const _page = Number(page) || 1
+      const _limit = limit ? parseInt(limit) : 20
+      const _offset = (_page - 1) * _limit
+      const _sort = sort || 'id'
+      const _order = order || 'DESC'
       if (decoded.payload.role !== 'admin') {
         return res.status(401).json({
           ok: 0,
@@ -21,7 +26,11 @@ const orderController = {
         })
       }
       try {
-        const orders = await Order.findAll()
+        const orders = await Order.findAll({
+          limit: _limit,
+          offset: _offset,
+          order: [[_sort, _order]],
+        })
         if (orders) {
           return res.status(200).json({
             ok: 1,
@@ -51,6 +60,12 @@ const orderController = {
             id,
           },
         })
+        if (!order) {
+          return res.status(500).json({
+            ok: 0,
+            message: '找不到這筆訂單',
+          })
+        }
         if (
           order.clientId === decoded.payload.userId ||
           order.vendorId === decoded.payload.vendorId ||
@@ -91,6 +106,12 @@ const orderController = {
           message: err.toString(),
         })
       }
+      let { page, limit, sort, order } = req.query
+      const _page = Number(page) || 1
+      const _limit = limit ? parseInt(limit) : 20
+      const _offset = (_page - 1) * _limit
+      const _sort = sort || 'id'
+      const _order = order || 'DESC'
       const clientId =
         decoded.payload.role === 'admin'
           ? req.query.clientId
@@ -106,6 +127,9 @@ const orderController = {
               attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
             },
           ],
+          limit: _limit,
+          offset: _offset,
+          order: [[_sort, _order]],
         })
         return res.status(200).json({
           ok: 1,
@@ -127,6 +151,12 @@ const orderController = {
           message: err.toString(),
         })
       }
+      let { page, limit, sort, order } = req.query
+      const _page = Number(page) || 1
+      const _limit = limit ? parseInt(limit) : 20
+      const _offset = (_page - 1) * _limit
+      const _sort = sort || 'id'
+      const _order = order || 'DESC'
       const vendorId =
         decoded.payload.role === 'admin'
           ? req.query.vendorId
@@ -142,6 +172,9 @@ const orderController = {
               attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
             },
           ],
+          limit: _limit,
+          offset: _offset,
+          order: [[_sort, _order]],
         })
         return res.status(200).json({
           ok: 1,
@@ -156,7 +189,6 @@ const orderController = {
     })
   },
   addOrder: async (req, res) => {
-    //測試完成
     jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
         return res.status(500).json({
@@ -251,6 +283,12 @@ const orderController = {
             id,
           },
         })
+        if (!order) {
+          return res.status(500).json({
+            ok: 0,
+            message: '找不到這筆訂單',
+          })
+        }
         if (
           order.clientId === decoded.payload.userId ||
           order.vendorId === decoded.payload.vendorId ||
@@ -300,6 +338,12 @@ const orderController = {
               id,
             },
           })
+          if (!order) {
+            return res.status(500).json({
+              ok: 0,
+              message: '找不到這筆訂單',
+            })
+          }
           if (
             order.clientId === decoded.payload.userId ||
             order.vendorId === decoded.payload.vendorId ||
