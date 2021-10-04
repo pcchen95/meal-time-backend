@@ -1,9 +1,9 @@
 {
   "development": {
-    "username": "root",
-    "password": "root1234",
+    "username": "mtr04group5",
+    "password": "Lidemymtr04group5",
     "database": "final-project",
-    "host": "localhost",
+    "host": "127.0.0.1",
     "dialect": "mysql"
   },
   "test": {
