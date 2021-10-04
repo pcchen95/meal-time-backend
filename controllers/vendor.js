@@ -20,7 +20,7 @@ const vendorController = {
       }
 
       if (!decoded.payload.vendorId) {
-        return res.status(400).json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not a vendor',
         });
@@ -58,7 +58,7 @@ const vendorController = {
         });
       }
       if (decoded.payload.role !== 'admin') {
-        return res.status(400).json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
         });
@@ -102,12 +102,27 @@ const vendorController = {
           message: 'you are not authorized',
         });
       }
+
+      let { _page, _limit, _sort, _order, categoryId } = req.query;
+      const page = Number(_page) || 1;
+      let offset = 0;
+      if (page) {
+        offset = (page - 1) * (_limit ? parseInt(_limit) : 10);
+      }
+      const sort = _sort || 'id';
+      const order = _order || 'DESC';
+      const limit = _limit ? parseInt(_limit) : 10;
+
       try {
         const vendors = await Vendor.findAll({
+          where: categoryId ? { categoryId } : {},
           include: {
             model: VendorCategory,
             attributes: ['name'],
           },
+          limit,
+          offset,
+          order: [[sort, order]],
         });
         return res.status(200).json({
           ok: 1,
@@ -315,7 +330,7 @@ const vendorController = {
       }
 
       if (!decoded.payload.vendorId) {
-        return res.status(400).json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not a vendor',
         });
@@ -328,6 +343,8 @@ const vendorController = {
         categoryId,
         description,
         openingHour,
+        isDeleteAvatar,
+        isDeleteBanner,
       } = req.body;
 
       if (!vendorName || !address || !phone || !openingHour) {
@@ -358,99 +375,139 @@ const vendorController = {
       if (vendorName !== vendor.vendorName) params.vendorName = vendorName;
       if (address !== vendor.address) params.address = address;
       if (phone !== vendor.phone) params.phone = phone;
-      if (categoryId !== vendor.categoryId) params.categoryId = categoryId;
+      if (Number(categoryId) !== vendor.categoryId)
+        params.categoryId = categoryId;
       if (description !== vendor.description) params.description = description;
       if (openingHour !== vendor.openingHour) params.openingHour = openingHour;
 
-      await addressToLatLng(address, async (err, location) => {
-        if (err) {
-          return res.status(500).json({
-            ok: 0,
-            message: err.toString(),
-          });
-        }
-        const { lat, lng } = location;
-        params.position = { type: 'Point', coordinates: [lat, lng] };
-        if (avatar || banner) {
-          if (vendor.avatarUrl) {
-            deleteImg(vendor.avatarUrl, (err) => {
-              if (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-            });
-          }
-          if (vendor.bannerUrl) {
-            deleteImg(vendor.bannerUrl, (err) => {
-              if (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-            });
-          }
-
-          const encodeAvatar = avatar ? avatar.buffer.toString('base64') : '';
-          const encodeBanner = banner ? banner.buffer.toString('base64') : '';
-
-          uploadMultipleImg(
-            {
-              avatar: {
-                encodeImage: encodeAvatar,
-                album: avatarAlbum,
-              },
-              banner: {
-                encodeImage: encodeBanner,
-                album: bannerAlbum,
-              },
-            },
-            async (err, links) => {
-              if (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-              const { avatar, banner } = links;
-              params.avatarUrl = avatar;
-              params.bannerUrl = banner;
-
-              try {
-                const result = await vendor.update(params);
-                if (result) {
-                  return res.status(200).json({
-                    ok: 1,
-                    message: 'Success',
-                  });
-                }
-              } catch (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-            }
-          );
-        } else {
-          try {
-            const result = await vendor.update(params);
-            if (result) {
-              return res.status(200).json({
-                ok: 1,
-                message: 'Success',
-              });
-            }
-          } catch (err) {
+      if (isDeleteAvatar) {
+        deleteImg(vendor.avatarUrl, (err) => {
+          if (err) {
             return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
           }
+        });
+        params.avatarUrl = null;
+      }
+
+      if (isDeleteBanner) {
+        deleteImg(vendor.bannerUrl, (err) => {
+          if (err) {
+            return res.status(500).json({
+              ok: 0,
+              message: err.toString(),
+            });
+          }
+        });
+        params.bannerUrl = null;
+      }
+
+      if (avatar || banner) {
+        if (avatar && vendor.avatarUrl) {
+          deleteImg(vendor.avatarUrl, (err) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          });
         }
-      });
+        if (banner && vendor.bannerUrl) {
+          deleteImg(vendor.bannerUrl, (err) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          });
+        }
+        const encodeAvatar = avatar ? avatar.buffer.toString('base64') : '';
+        const encodeBanner = banner ? banner.buffer.toString('base64') : '';
+
+        uploadMultipleImg(
+          {
+            avatar: {
+              encodeImage: encodeAvatar,
+              album: avatarAlbum,
+            },
+            banner: {
+              encodeImage: encodeBanner,
+              album: bannerAlbum,
+            },
+          },
+          async (err, links) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+            const { avatar, banner } = links;
+            console.log(avatar, banner);
+            params.avatarUrl = avatar || params.avatarUrl;
+            params.bannerUrl = banner || params.bannerUrl;
+
+            if (params.address) {
+              await addressToLatLng(address, async (err, location) => {
+                if (err) {
+                  return res.status(500).json({
+                    ok: 0,
+                    message: err.toString(),
+                  });
+                }
+                const { lat, lng } = location;
+                params.position = { type: 'Point', coordinates: [lat, lng] };
+              });
+            }
+
+            try {
+              const result = await vendor.update(params);
+              if (result) {
+                return res.status(200).json({
+                  ok: 1,
+                  message: 'Success',
+                });
+              }
+            } catch (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          }
+        );
+      } else {
+        try {
+          if (params.address) {
+            await addressToLatLng(address, async (err, location) => {
+              if (err) {
+                return res.status(500).json({
+                  ok: 0,
+                  message: err.toString(),
+                });
+              }
+              const { lat, lng } = location;
+              params.position = { type: 'Point', coordinates: [lat, lng] };
+            });
+          }
+          const result = await vendor.update(params);
+          if (result) {
+            return res.status(200).json({
+              ok: 1,
+              message: 'Success',
+            });
+          }
+        } catch (err) {
+          return res.status(500).json({
+            ok: 0,
+            message: err.toString(),
+          });
+        }
+      }
     });
   },
 
@@ -484,6 +541,9 @@ const vendorController = {
         });
       }
 
+      const avatar = req.files['avatar'] ? req.files['avatar'][0] : null;
+      const banner = req.files['banner'] ? req.files['banner'][0] : null;
+
       let vendor;
       try {
         vendor = await Vendor.findOne({
@@ -506,100 +566,139 @@ const vendorController = {
       if (vendorName !== vendor.vendorName) params.vendorName = vendorName;
       if (address !== vendor.address) params.address = address;
       if (phone !== vendor.phone) params.phone = phone;
-      if (categoryId !== vendor.categoryId) params.categoryId = categoryId;
+      if (Number(categoryId) !== vendor.categoryId)
+        params.categoryId = categoryId;
       if (description !== vendor.description) params.description = description;
       if (openingHour !== vendor.openingHour) params.openingHour = openingHour;
 
-      const avatar = req.files['avatar'] ? req.files['avatar'][0] : null;
-      const banner = req.files['banner'] ? req.files['banner'][0] : null;
-
-      await addressToLatLng(address, (err, location) => {
-        if (err) {
-          return res.status(500).json({
-            ok: 0,
-            message: err.toString(),
-          });
-        }
-        const { lat, lng } = location;
-        params.position = { type: 'Point', coordinates: [lat, lng] };
-        if (avatar || banner) {
-          if (vendor.avatarUrl) {
-            deleteImg(vendor.avatarUrl, (err) => {
-              if (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-            });
-          }
-          if (vendor.bannerUrl) {
-            deleteImg(vendor.bannerUrl, (err) => {
-              if (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-            });
-          }
-          const encodeAvatar = avatar ? avatar.buffer.toString('base64') : '';
-          const encodeBanner = banner ? banner.buffer.toString('base64') : '';
-          uploadMultipleImg(
-            {
-              avatar: {
-                encodeImage: encodeAvatar,
-                album: avatarAlbum,
-              },
-              banner: {
-                encodeImage: encodeBanner,
-                album: bannerAlbum,
-              },
-            },
-            (err, links) => {
-              if (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-              const { avatar, banner } = links;
-              params.avatarUrl = avatar;
-              params.bannerUrl = banner;
-
-              try {
-                const result = vendor.update(params);
-                if (result) {
-                  return res.status(200).json({
-                    ok: 1,
-                    message: 'Success',
-                  });
-                }
-              } catch (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-            }
-          );
-        } else {
-          try {
-            const result = vendor.update(params);
-            if (result) {
-              return res.status(200).json({
-                ok: 1,
-                message: 'Success',
-              });
-            }
-          } catch (err) {
+      if (isDeleteAvatar) {
+        deleteImg(vendor.avatarUrl, (err) => {
+          if (err) {
             return res.status(500).json({
               ok: 0,
               message: err.toString(),
             });
           }
+        });
+        params.avatarUrl = null;
+      }
+
+      if (isDeleteBanner) {
+        deleteImg(vendor.bannerUrl, (err) => {
+          if (err) {
+            return res.status(500).json({
+              ok: 0,
+              message: err.toString(),
+            });
+          }
+        });
+        params.bannerUrl = null;
+      }
+
+      if (avatar || banner) {
+        if (avatar && vendor.avatarUrl) {
+          deleteImg(vendor.avatarUrl, (err) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          });
         }
-      });
+        if (banner && vendor.bannerUrl) {
+          deleteImg(vendor.bannerUrl, (err) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          });
+        }
+        const encodeAvatar = avatar ? avatar.buffer.toString('base64') : '';
+        const encodeBanner = banner ? banner.buffer.toString('base64') : '';
+
+        uploadMultipleImg(
+          {
+            avatar: {
+              encodeImage: encodeAvatar,
+              album: avatarAlbum,
+            },
+            banner: {
+              encodeImage: encodeBanner,
+              album: bannerAlbum,
+            },
+          },
+          async (err, links) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+            const { avatar, banner } = links;
+            console.log(avatar, banner);
+            params.avatarUrl = avatar || params.avatarUrl;
+            params.bannerUrl = banner || params.bannerUrl;
+
+            if (params.address) {
+              await addressToLatLng(address, async (err, location) => {
+                if (err) {
+                  return res.status(500).json({
+                    ok: 0,
+                    message: err.toString(),
+                  });
+                }
+                const { lat, lng } = location;
+                params.position = { type: 'Point', coordinates: [lat, lng] };
+              });
+            }
+
+            try {
+              const result = await vendor.update(params);
+              if (result) {
+                return res.status(200).json({
+                  ok: 1,
+                  message: 'Success',
+                });
+              }
+            } catch (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          }
+        );
+      } else {
+        try {
+          if (params.address) {
+            await addressToLatLng(address, async (err, location) => {
+              if (err) {
+                return res.status(500).json({
+                  ok: 0,
+                  message: err.toString(),
+                });
+              }
+              const { lat, lng } = location;
+              params.position = { type: 'Point', coordinates: [lat, lng] };
+            });
+          }
+          const result = await vendor.update(params);
+          if (result) {
+            return res.status(200).json({
+              ok: 1,
+              message: 'Success',
+            });
+          }
+        } catch (err) {
+          return res.status(500).json({
+            ok: 0,
+            message: err.toString(),
+          });
+        }
+      }
     });
   },
 
@@ -613,7 +712,7 @@ const vendorController = {
       }
 
       if (!decoded.payload.vendorId) {
-        return res.status(400).json({
+        return res.status(401).json({
           ok: 0,
           message: 'you are not a vendor',
         });
