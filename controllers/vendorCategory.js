@@ -6,8 +6,22 @@ const { VendorCategory } = db;
 
 const VendorCategoryController = {
   getAllCategories: async (req, res) => {
+    let { _page, _limit, _sort, _order } = req.query;
+    const page = Number(_page) || 1;
+    let offset = 0;
+    if (page) {
+      offset = (page - 1) * (_limit ? parseInt(_limit) : 10);
+    }
+    const sort = _sort || 'id';
+    const order = _order || 'DESC';
+    const limit = _limit ? parseInt(_limit) : 10;
+
     try {
-      const categories = await VendorCategory.findAll();
+      const categories = await VendorCategory.findAll({
+        limit,
+        offset,
+        order: [[sort, order]],
+      });
       return res.status(200).json({
         ok: 1,
         data: categories,
