@@ -50,42 +50,27 @@ const vendorController = {
   },
 
   getVendorById: async (req, res) => {
-    jwt.verify(req.token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({
-          ok: 0,
-          message: err.toString(),
-        });
-      }
-      if (decoded.payload.role !== 'admin') {
-        return res.status(401).json({
-          ok: 0,
-          message: 'you are not authorized',
-        });
-      }
-      let vendor;
-      try {
-        vendor = await Vendor.findOne({
-          where: {
-            id: req.params.id,
-          },
-          include: {
-            model: VendorCategory,
-            attributes: ['name'],
-          },
-        });
+    try {
+      const vendor = await Vendor.findOne({
+        where: {
+          id: req.params.id,
+        },
+        include: {
+          model: VendorCategory,
+          attributes: ['name'],
+        },
+      });
 
-        return res.status(200).json({
-          ok: 1,
-          data: vendor,
-        });
-      } catch (err) {
-        return res.status(500).json({
-          ok: 0,
-          message: err.toString(),
-        });
-      }
-    });
+      return res.status(200).json({
+        ok: 1,
+        data: vendor,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        ok: 0,
+        message: err.toString(),
+      });
+    }
   },
 
   getAllVendors: async (req, res) => {
