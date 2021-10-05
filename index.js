@@ -61,10 +61,6 @@ app.patch(
 app.patch('/users/auth/:id', ensureToken, userController.updateRole);
 
 /* Vendor */
-
-app.get('/vendors/:id', ensureToken, vendorController.getVendorById);
-app.get('/vendors', ensureToken, vendorController.getAllVendors);
-
 app.post(
   '/vendors/register',
   ensureToken,
@@ -79,8 +75,8 @@ app.patch(
   vendorController.updateVendorMe
 );
 
-app.get('/vendors/profile/:id', ensureToken, vendorController.getVendorById);
-app.get('/vendors/profile', ensureToken, vendorController.getAllVendors);
+app.get('/vendors/profile/:id', vendorController.getVendorById);
+app.get('/vendors/profile', vendorController.getAllVendors);
 app.patch(
   '/vendors/profile/:id',
   ensureToken,
@@ -223,29 +219,6 @@ app.delete(
   ensureToken,
   productCategoryController.deleteCategory
 );
-
-app.get('/vendor-categories', vendorCategoryController.getAllCategories);
-app.get(
-  '/vendor-categories/:id',
-  ensureToken,
-  vendorCategoryController.getCategory
-);
-app.post(
-  '/vendor-categories',
-  ensureToken,
-  vendorCategoryController.addCategory
-);
-app.patch(
-  '/vendor-categories/:id',
-  ensureToken,
-  vendorCategoryController.updateCategory
-);
-app.delete(
-  '/vendor-categories/:id',
-  ensureToken,
-  vendorCategoryController.deleteCategory
-);
-
 
 app.get('/orders', ensureToken, orderController.getAll);
 app.get('/orders/buy', ensureToken, orderController.getBuy);
