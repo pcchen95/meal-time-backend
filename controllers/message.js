@@ -37,6 +37,8 @@ const messageController = {
 
   getAllClientMessages: (req, res) => {
     jwt.verify(req.token, secretKey, async (err, decoded) => {
+      let { _page, _limit, _sort, _order } = req.query;
+      const page = Number(_page) || 1;
       if (err) {
         return res.status(401).json({
           ok: 0,
@@ -44,11 +46,22 @@ const messageController = {
         });
       }
 
+      let offset = 0;
+      if (page) {
+        offset = (page - 1) * (_limit ? parseInt(_limit) : 10);
+      }
+      const sort = _sort || 'updatedAt';
+      const order = _order || 'DESC';
+      const limit = _limit ? parseInt(_limit) : 10;
+
       try {
         const messages = await Message.findAll({
           where: {
             clientId: decoded.payload.userId,
           },
+          limit,
+          offset,
+          order: [[sort, order]],
         });
 
         return res.status(200).json({
@@ -188,11 +201,31 @@ const messageController = {
         });
       }
 
+      let { _page, _limit, _sort, _order } = req.query;
+      const page = Number(_page) || 1;
+      if (err) {
+        return res.status(401).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+
+      let offset = 0;
+      if (page) {
+        offset = (page - 1) * (_limit ? parseInt(_limit) : 10);
+      }
+      const sort = _sort || 'updatedAt';
+      const order = _order || 'DESC';
+      const limit = _limit ? parseInt(_limit) : 10;
+
       try {
         const messages = await Message.findAll({
           where: {
             vendorId: decoded.payload.vendorId,
           },
+          limit,
+          offset,
+          order: [[sort, order]],
         });
 
         return res.status(200).json({
@@ -439,8 +472,29 @@ const messageController = {
         });
       }
 
+      let { _page, _limit, _sort, _order } = req.query;
+      const page = Number(_page) || 1;
+      if (err) {
+        return res.status(401).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+
+      let offset = 0;
+      if (page) {
+        offset = (page - 1) * (_limit ? parseInt(_limit) : 10);
+      }
+      const sort = _sort || 'updatedAt';
+      const order = _order || 'DESC';
+      const limit = _limit ? parseInt(_limit) : 10;
+
       try {
-        const messages = await MessageToAdmin.findAll();
+        const messages = await MessageToAdmin.findAll({
+          limit,
+          offset,
+          order: [[sort, order]],
+        });
 
         return res.status(200).json({
           ok: 1,
@@ -636,8 +690,29 @@ const messageController = {
         });
       }
 
+      let { _page, _limit, _sort, _order, categoryId } = req.query;
+      const page = Number(_page) || 1;
+      if (err) {
+        return res.status(401).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+
+      let offset = 0;
+      if (page) {
+        offset = (page - 1) * (_limit ? parseInt(_limit) : 10);
+      }
+      const sort = _sort || 'updatedAt';
+      const order = _order || 'DESC';
+      const limit = _limit ? parseInt(_limit) : 10;
+
       try {
-        const messages = await ReportMessage.findAll();
+        const messages = await ReportMessage.findAll({
+          limit,
+          offset,
+          order: [[sort, order]],
+        });
 
         return res.status(200).json({
           ok: 1,

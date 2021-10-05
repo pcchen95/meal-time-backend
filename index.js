@@ -75,8 +75,14 @@ app.patch(
   vendorController.updateVendorMe
 );
 
-app.get('/vendors/profile/:id', vendorController.getVendorById);
-app.get('/vendors/profile', vendorController.getAllVendors);
+app.get('/vendors/profile/:id', vendorController.getAvailableVendorById);
+app.get(
+  '/vendors/admin/profile/:id',
+  ensureToken,
+  vendorController.getVendorById
+);
+app.get('/vendors/profile', vendorController.getAvailableVendors);
+app.get('/vendors/admin/profile', ensureToken, vendorController.getAllVendors);
 app.patch(
   '/vendors/profile/:id',
   ensureToken,

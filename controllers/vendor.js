@@ -49,11 +49,12 @@ const vendorController = {
     });
   },
 
-  getVendorById: async (req, res) => {
+  getAvailableVendorById: async (req, res) => {
     try {
       const vendor = await Vendor.findOne({
         where: {
           id: req.params.id,
+          isSuspended: false,
         },
         include: {
           model: VendorCategory,
@@ -73,7 +74,45 @@ const vendorController = {
     }
   },
 
-  getAllVendors: async (req, res) => {
+  getVendorById: async (req, res) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+      if (decoded.payload.role !== 'admin') {
+        return res.status(401).json({
+          ok: 0,
+          message: 'you are not authorized',
+        });
+      }
+      try {
+        const vendor = await Vendor.findOne({
+          where: {
+            id: req.params.id,
+          },
+          include: {
+            model: VendorCategory,
+            attributes: ['name'],
+          },
+        });
+
+        return res.status(200).json({
+          ok: 1,
+          data: vendor,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+    });
+  },
+
+  getAvailableVendors: async (req, res) => {
     let { _page, _limit, _sort, _order, categoryId } = req.query;
     const page = Number(_page) || 1;
     let offset = 0;
@@ -86,7 +125,16 @@ const vendorController = {
 
     try {
       const vendors = await Vendor.findAll({
-        where: categoryId ? { categoryId } : {},
+        where: categoryId
+          ? {
+              isOpen: true,
+              isSuspended: false,
+              categoryId,
+            }
+          : {
+              isOpen: true,
+              isSuspended: false,
+            },
         include: {
           model: VendorCategory,
           attributes: ['name'],
@@ -105,6 +153,60 @@ const vendorController = {
         message: err.toString(),
       });
     }
+  },
+
+  getAllVendors: async (req, res) => {
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+      if (decoded.payload.role !== 'admin') {
+        return res.status(401).json({
+          ok: 0,
+          message: 'you are not authorized',
+        });
+      }
+      let { _page, _limit, _sort, _order, categoryId, isOpen, isSuspended } =
+        req.query;
+      const page = Number(_page) || 1;
+      let offset = 0;
+      if (page) {
+        offset = (page - 1) * (_limit ? parseInt(_limit) : 10);
+      }
+      const sort = _sort || 'id';
+      const order = _order || 'DESC';
+      const limit = _limit ? parseInt(_limit) : 10;
+
+      let condition = {};
+      if (categoryId) condition.categoryId = categoryId;
+      if (isOpen) condition.isOpen = isOpen === 0 ? false : true;
+      if (isSuspended) condition.isSuspended = isSuspended === 0 ? false : true;
+
+      try {
+        const vendors = await Vendor.findAll({
+          where: condition,
+          include: {
+            model: VendorCategory,
+            attributes: ['name'],
+          },
+          limit,
+          offset,
+          order: [[sort, order]],
+        });
+        return res.status(200).json({
+          ok: 1,
+          data: vendors,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+    });
   },
 
   register: async (req, res, next) => {
