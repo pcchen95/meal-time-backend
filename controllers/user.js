@@ -25,7 +25,10 @@ const userController = {
             id: decoded.payload.userId,
           },
           attributes: [
+<<<<<<< HEAD
             'id',
+=======
+>>>>>>> 320b0a863b1cfa4ffae17621f46ac4a938035d1e
             'nickname',
             'username',
             'phone',
