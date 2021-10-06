@@ -25,6 +25,10 @@ const userController = {
             id: decoded.payload.userId,
           },
           attributes: [
+<<<<<<< HEAD
+            'id',
+=======
+>>>>>>> 320b0a863b1cfa4ffae17621f46ac4a938035d1e
             'nickname',
             'username',
             'phone',
@@ -373,14 +377,16 @@ const userController = {
       if (phone !== user.phone) params.phone = phone;
 
       if (avatar) {
-        deleteImg(user.avatarURL, (err) => {
-          if (err) {
-            return res.status(500).json({
-              ok: 0,
-              message: err.toString(),
-            });
-          }
-        });
+        if (user.avatarURL) {
+          deleteImg(user.avatarURL, (err) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          });
+        }
         const encodeImage = avatar.buffer.toString('base64');
         uploadImg(encodeImage, album, async (err, link) => {
           if (err) {
@@ -476,14 +482,16 @@ const userController = {
       if (phone !== user.phone) params.phone = phone;
 
       if (avatar) {
-        deleteImg(user.avatarURL, (err) => {
-          if (err) {
-            return res.status(500).json({
-              ok: 0,
-              message: err.toString(),
-            });
-          }
-        });
+        if (user.avatarURL) {
+          deleteImg(user.avatarURL, (err) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          });
+        }
         const encodeImage = avatar.buffer.toString('base64');
         uploadImg(encodeImage, album, async (err, link) => {
           if (err) {
