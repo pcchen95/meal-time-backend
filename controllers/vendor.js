@@ -19,13 +19,6 @@ const vendorController = {
         });
       }
 
-      if (!decoded.payload.vendorId) {
-        return res.status(401).json({
-          ok: 0,
-          message: 'you are not a vendor',
-        });
-      }
-
       try {
         const vendor = await Vendor.findOne({
           where: {

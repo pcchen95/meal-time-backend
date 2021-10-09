@@ -56,7 +56,7 @@ const userController = {
           message: err.toString(),
         });
       }
-      if (decoded.payload.admin !== 'admin') {
+      if (decoded.payload.role !== 'admin') {
         return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
@@ -409,6 +409,7 @@ const userController = {
         });
       } else {
         if (isDeleteAvatar) {
+          console.log(typeof isDeleteAvatar);
           deleteImg(user.avatarURL, (err) => {
             if (err) {
               return res.status(500).json({
@@ -419,6 +420,7 @@ const userController = {
           });
           params.avatarURL = null;
         }
+        console.log(2);
         try {
           await user.update(params);
           return res.status(200).json({
