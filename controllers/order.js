@@ -26,7 +26,7 @@ const orderController = {
         })
       }
       try {
-        const orders = await Order.findAll({
+        const orders = await Order.findAndCountAll({
           limit: _limit,
           offset: _offset,
           order: [[_sort, _order]],
@@ -59,6 +59,12 @@ const orderController = {
           where: {
             id,
           },
+          include: [
+            {
+              model: Vendor,
+              attributes: ['id', 'vendorName', 'address'],
+            },
+          ],
         })
         if (!order) {
           return res.status(500).json({
@@ -118,7 +124,7 @@ const orderController = {
       const clientId =
         decoded.payload.role === 'admin' ? queriedUser : decoded.payload.userId
       try {
-        const orders = await Order.findAll({
+        const orders = await Order.findAndCountAll({
           where: {
             clientId,
           },
@@ -166,7 +172,7 @@ const orderController = {
           ? queriedUser
           : decoded.payload.vendorId
       try {
-        const orders = await Order.findAll({
+        const orders = await Order.findAndCountAll({
           where: {
             vendorId,
           },
