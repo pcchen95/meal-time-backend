@@ -3,7 +3,7 @@ const db = require('../models')
 const { uploadImg, deleteImg } = require('./imgur.js')
 const jwt = require('jsonwebtoken')
 const secretKey = require('../auth/secretKey')
-const { Product, ProductCategory, Vendor } = db
+const { Product, ProductCategory, Vendor, VendorCategory } = db
 const album = 'gpxFA0k'
 
 const productController = {
@@ -17,10 +17,12 @@ const productController = {
         include: [
           {
             model: ProductCategory,
+            attributes: ['id', 'name'],
           },
           {
             model: Vendor,
-            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
+            attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
+            include: [{ model: VendorCategory, attributes: ['id', 'name'] }],
           },
         ],
       })
@@ -45,7 +47,7 @@ const productController = {
     const _sort = sort || 'id'
     const _order = order || 'DESC'
     try {
-      const procucts = await Product.findAll({
+      const procucts = await Product.findAndCountAll({
         where: {
           quantity: {
             [Op.gt]: 0,
@@ -87,7 +89,7 @@ const productController = {
     const _sort = sort || 'id'
     const _order = order || 'DESC'
     try {
-      const procucts = await Product.findAll({
+      const procucts = await Product.findAndCountAll({
         where: {
           quantity: {
             [Op.gt]: 0,
@@ -128,7 +130,7 @@ const productController = {
     const _sort = sort || 'id'
     const _order = order || 'DESC'
     try {
-      const products = await Product.findAll({
+      const products = await Product.findAndCountAll({
         where: {
           quantity: {
             [Op.gt]: 0,
@@ -178,7 +180,7 @@ const productController = {
       const productCategoriesList = productCategories.map(
         (category) => category.id
       )
-      const products = await Product.findAll({
+      const products = await Product.findAndCountAll({
         where: {
           quantity: {
             [Op.gt]: 0,
