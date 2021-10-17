@@ -11,41 +11,42 @@ const album = '19dKauX';
 
 const userController = {
   getMe: (req, res, next) => {
-    jwt.verify(req.token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({
-          ok: 0,
-          message: err.toString(),
-        });
-      }
-      let user;
-      try {
-        user = await User.findOne({
-          where: {
-            id: decoded.payload.userId,
-          },
-          attributes: [
-            'id',
-            'nickname',
-            'username',
-            'phone',
-            'email',
-            'avatarURL',
-            'role',
-          ],
-        });
+    if (!req.token)
+      jwt.verify(req.token, secretKey, async (err, decoded) => {
+        if (err) {
+          return res.status(401).json({
+            ok: 0,
+            message: err.toString(),
+          });
+        }
+        let user;
+        try {
+          user = await User.findOne({
+            where: {
+              id: decoded.payload.userId,
+            },
+            attributes: [
+              'id',
+              'nickname',
+              'username',
+              'phone',
+              'email',
+              'avatarURL',
+              'role',
+            ],
+          });
 
-        return res.status(200).json({
-          ok: 1,
-          data: user,
-        });
-      } catch (err) {
-        return res.status(500).json({
-          ok: 0,
-          message: err.toString(),
-        });
-      }
-    });
+          return res.status(200).json({
+            ok: 1,
+            data: user,
+          });
+        } catch (err) {
+          return res.status(500).json({
+            ok: 0,
+            message: err.toString(),
+          });
+        }
+      });
   },
 
   getProfileById: async (req, res, next) => {
