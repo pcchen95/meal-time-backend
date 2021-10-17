@@ -1,7 +1,6 @@
 const db = require('../models');
 const jwt = require('jsonwebtoken');
 const { uploadImg, deleteImg, uploadMultipleImg } = require('./imgur.js');
-const { addressToLatLng } = require('./address.js');
 const secretKey = require('../auth/secretKey');
 
 const saltRounds = 10;
@@ -220,13 +219,14 @@ const vendorController = {
       const {
         vendorName,
         address,
+        latlng,
         phone,
         categoryId,
         description,
         openingHour,
       } = req.body;
 
-      if (!vendorName || !address || !phone || !openingHour) {
+      if (!vendorName || !address || latlng || !phone || !openingHour) {
         return res.status(400).json({
           ok: 0,
           message: 'All fields are required.',
@@ -238,7 +238,6 @@ const vendorController = {
         vendorName,
         address,
         phone,
-        position: null,
         avatarUrl: null,
         bannerUrl: null,
         categoryId,
@@ -249,93 +248,88 @@ const vendorController = {
       const banner = req.files['banner'] ? req.files['banner'][0] : null;
 
       let vendor;
-      await addressToLatLng(address, async (err, location) => {
-        if (err) {
-          return res.status(500).json({
-            ok: 0,
-            message: err.toString(),
-          });
-        }
-        const { lat, lng } = location;
-        params.position = { type: 'Point', coordinates: [lat, lng] };
-        if (avatar || banner) {
-          const encodeAvatar = avatar ? avatar.buffer.toString('base64') : '';
-          const encodeBanner = banner ? banner.buffer.toString('base64') : '';
-          uploadMultipleImg(
-            {
-              avatar: {
-                encodeImage: encodeAvatar,
-                album: avatarAlbum,
-              },
-              banner: {
-                encodeImage: encodeBanner,
-                album: bannerAlbum,
-              },
+      const { lat, lng } = JSON.parse(latlng);
+      params.position = {
+        type: 'Point',
+        coordinates: [lat, lng],
+      };
+      if (avatar || banner) {
+        const encodeAvatar = avatar ? avatar.buffer.toString('base64') : '';
+        const encodeBanner = banner ? banner.buffer.toString('base64') : '';
+        uploadMultipleImg(
+          {
+            avatar: {
+              encodeImage: encodeAvatar,
+              album: avatarAlbum,
             },
-            async (err, links) => {
-              if (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-              const { avatar, banner } = links;
-              params.avatarUrl = avatar;
-              params.bannerUrl = banner;
-
-              try {
-                vendor = await Vendor.create(params);
-              } catch (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
+            banner: {
+              encodeImage: encodeBanner,
+              album: bannerAlbum,
+            },
+          },
+          async (err, links) => {
+            if (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
             }
-          );
-        } else {
-          try {
-            vendor = await Vendor.create(params);
-          } catch (err) {
-            return res.status(500).json({
-              ok: 0,
-              message: err.toString(),
-            });
-          }
-        }
+            const { avatar, banner } = links;
+            params.avatarUrl = avatar;
+            params.bannerUrl = banner;
 
+            try {
+              vendor = await Vendor.create(params);
+            } catch (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+          }
+        );
+      } else {
         try {
-          const user = await User.findOne({
-            where: {
-              id: decoded.payload.userId,
-            },
-          });
-          const response = await user.update({
-            role: 'vendor',
-            vendorId: vendor.id,
-          });
-
-          if (response) {
-            decoded.payload.vendorId = vendor.id;
-            const token = jwt.sign(
-              {
-                payload: decoded.payload,
-                exp: decoded.exp,
-              },
-              'my_secret_key'
-            );
-            return res.status(200).json({
-              ok: 1,
-              token,
-            });
-          }
+          vendor = await Vendor.create(params);
         } catch (err) {
           return res.status(500).json({
             ok: 0,
             message: err.toString(),
           });
         }
-      });
+      }
+
+      try {
+        const user = await User.findOne({
+          where: {
+            id: decoded.payload.userId,
+          },
+        });
+        const response = await user.update({
+          role: 'vendor',
+          vendorId: vendor.id,
+        });
+
+        if (response) {
+          decoded.payload.vendorId = vendor.id;
+          const token = jwt.sign(
+            {
+              payload: decoded.payload,
+              exp: decoded.exp,
+            },
+            secretKey
+          );
+          return res.status(200).json({
+            ok: 1,
+            token,
+          });
+        }
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
     });
   },
 
@@ -404,6 +398,7 @@ const vendorController = {
       const {
         vendorName,
         address,
+        latlng,
         phone,
         categoryId,
         description,
@@ -411,8 +406,7 @@ const vendorController = {
         isDeleteAvatar,
         isDeleteBanner,
       } = req.body;
-
-      if (!vendorName || !address || !phone || !openingHour) {
+      if (!vendorName || !address || !latlng || !phone || !openingHour) {
         return res.status(400).json({
           ok: 0,
           message: 'All fields are required.',
@@ -439,6 +433,11 @@ const vendorController = {
       let params = {};
       if (vendorName !== vendor.vendorName) params.vendorName = vendorName;
       if (address !== vendor.address) params.address = address;
+      const vendorLat = Number(vendor.position.coordinates[0]);
+      const vendorLng = Number(vendor.position.coordinates[1]);
+      const { lat, lng } = JSON.parse(latlng);
+      if (Number(lat) !== vendorLat || Number(lng) !== vendorLng)
+        params.position = { type: 'Point', coordinates: [lat, lng] };
       if (phone !== vendor.phone) params.phone = phone;
       if (Number(categoryId) !== vendor.categoryId)
         params.categoryId = categoryId;
@@ -512,22 +511,8 @@ const vendorController = {
               });
             }
             const { avatar, banner } = links;
-            console.log(avatar, banner);
             params.avatarUrl = avatar || params.avatarUrl;
             params.bannerUrl = banner || params.bannerUrl;
-
-            if (params.address) {
-              await addressToLatLng(address, async (err, location) => {
-                if (err) {
-                  return res.status(500).json({
-                    ok: 0,
-                    message: err.toString(),
-                  });
-                }
-                const { lat, lng } = location;
-                params.position = { type: 'Point', coordinates: [lat, lng] };
-              });
-            }
 
             try {
               const result = await vendor.update(params);
@@ -547,18 +532,6 @@ const vendorController = {
         );
       } else {
         try {
-          if (params.address) {
-            await addressToLatLng(address, async (err, location) => {
-              if (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-              const { lat, lng } = location;
-              params.position = { type: 'Point', coordinates: [lat, lng] };
-            });
-          }
           const result = await vendor.update(params);
           if (result) {
             return res.status(200).json({
@@ -593,13 +566,14 @@ const vendorController = {
       const {
         vendorName,
         address,
+        latlng,
         phone,
         categoryId,
         description,
         openingHour,
       } = req.body;
 
-      if (!vendorName || !address || !phone || !openingHour) {
+      if (!vendorName || !address || !latlng || !phone || !openingHour) {
         return res.status(400).json({
           ok: 0,
           message: 'All fields are required.',
@@ -630,6 +604,11 @@ const vendorController = {
       let params = {};
       if (vendorName !== vendor.vendorName) params.vendorName = vendorName;
       if (address !== vendor.address) params.address = address;
+      const vendorLat = Number(vendor.position.coordinates[0]);
+      const vendorLng = Number(vendor.position.coordinates[1]);
+      const { lat, lng } = JSON.parse(latlng);
+      if (Number(lat) !== vendorLat || Number(lng) !== vendorLng)
+        params.position = { type: 'Point', coordinates: [lat, lng] };
       if (phone !== vendor.phone) params.phone = phone;
       if (Number(categoryId) !== vendor.categoryId)
         params.categoryId = categoryId;
@@ -707,19 +686,6 @@ const vendorController = {
             params.avatarUrl = avatar || params.avatarUrl;
             params.bannerUrl = banner || params.bannerUrl;
 
-            if (params.address) {
-              await addressToLatLng(address, async (err, location) => {
-                if (err) {
-                  return res.status(500).json({
-                    ok: 0,
-                    message: err.toString(),
-                  });
-                }
-                const { lat, lng } = location;
-                params.position = { type: 'Point', coordinates: [lat, lng] };
-              });
-            }
-
             try {
               const result = await vendor.update(params);
               if (result) {
@@ -738,18 +704,6 @@ const vendorController = {
         );
       } else {
         try {
-          if (params.address) {
-            await addressToLatLng(address, async (err, location) => {
-              if (err) {
-                return res.status(500).json({
-                  ok: 0,
-                  message: err.toString(),
-                });
-              }
-              const { lat, lng } = location;
-              params.position = { type: 'Point', coordinates: [lat, lng] };
-            });
-          }
           const result = await vendor.update(params);
           if (result) {
             return res.status(200).json({
