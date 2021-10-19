@@ -1,8 +1,9 @@
-const db = require('../models')
-const jwt = require('jsonwebtoken')
-const secretKey = require('../auth/secretKey')
-const { sequelize } = require('../models')
+const db = require("../models")
+const jwt = require("jsonwebtoken")
+const secretKey = require("../auth/secretKey")
+const { sequelize } = require("../models")
 const { Order, Product, OrderItem, Vendor } = db
+const { Op } = require("sequelize")
 
 const orderController = {
   getAll: async (req, res) => {
@@ -13,24 +14,72 @@ const orderController = {
           message: err.toString(),
         })
       }
-      let { page, limit, sort, order } = req.query
+      let { page, limit, sort, order, status } = req.query
       const _page = Number(page) || 1
       const _limit = limit ? parseInt(limit) : 20
       const _offset = (_page - 1) * _limit
-      const _sort = sort || 'id'
-      const _order = order || 'DESC'
-      if (decoded.payload.role !== 'admin') {
+      const _sort = sort || "id"
+      const _order = order || "DESC"
+      const _status = status || "all"
+      if (decoded.payload.role !== "admin") {
         return res.status(401).json({
           ok: 0,
-          message: 'you are not authorized',
+          message: "you are not authorized",
         })
       }
       try {
-        const orders = await Order.findAndCountAll({
-          limit: _limit,
-          offset: _offset,
-          order: [[_sort, _order]],
-        })
+        let orders
+        switch (_status) {
+          case "uncompleted":
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                isCompleted: false,
+                isCanceledByVendor: false,
+                isCanceledByClient: false,
+              },
+            })
+            break
+          case "canceled":
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                [Op.not]: [
+                  {
+                    [Op.and]: [
+                      { isCanceledByVendor: false },
+                      {
+                        isCanceledByClient: false,
+                      },
+                    ],
+                  },
+                ],
+              },
+            })
+            break
+          case "completed":
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                isCompleted: true,
+              },
+            })
+            break
+          default:
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+            })
+            break
+        }
+
         if (orders) {
           return res.status(200).json({
             ok: 1,
@@ -62,20 +111,20 @@ const orderController = {
           include: [
             {
               model: Vendor,
-              attributes: ['id', 'vendorName', 'address'],
+              attributes: ["id", "vendorName", "address"],
             },
           ],
         })
         if (!order) {
           return res.status(500).json({
             ok: 0,
-            message: '找不到這筆訂單',
+            message: "找不到這筆訂單",
           })
         }
         if (
           order.clientId === decoded.payload.userId ||
           order.vendorId === decoded.payload.vendorId ||
-          decoded.payload.role === 'admin'
+          decoded.payload.role === "admin"
         ) {
           const orderItems = await OrderItem.findAll({
             where: {
@@ -116,13 +165,13 @@ const orderController = {
       const _page = Number(page) || 1
       const _limit = limit ? parseInt(limit) : 20
       const _offset = (_page - 1) * _limit
-      const _sort = sort || 'id'
-      const _order = order || 'DESC'
+      const _sort = sort || "id"
+      const _order = order || "DESC"
       const queriedUser = req.query.clientId
         ? req.query.clientId
         : decoded.payload.userId
       const clientId =
-        decoded.payload.role === 'admin' ? queriedUser : decoded.payload.userId
+        decoded.payload.role === "admin" ? queriedUser : decoded.payload.userId
       try {
         const orders = await Order.findAndCountAll({
           where: {
@@ -131,7 +180,7 @@ const orderController = {
           include: [
             {
               model: Vendor,
-              attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
+              attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
             },
           ],
           limit: _limit,
@@ -162,13 +211,13 @@ const orderController = {
       const _page = Number(page) || 1
       const _limit = limit ? parseInt(limit) : 20
       const _offset = (_page - 1) * _limit
-      const _sort = sort || 'id'
-      const _order = order || 'DESC'
+      const _sort = sort || "id"
+      const _order = order || "DESC"
       const queriedUser = req.query.vendorId
         ? req.query.vendorId
         : decoded.payload.userId
       const vendorId =
-        decoded.payload.role === 'admin'
+        decoded.payload.role === "admin"
           ? queriedUser
           : decoded.payload.vendorId
       try {
@@ -179,7 +228,7 @@ const orderController = {
           include: [
             {
               model: Vendor,
-              attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
+              attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
             },
           ],
           limit: _limit,
@@ -246,13 +295,13 @@ const orderController = {
                   where: {
                     id: productItem.id,
                   },
-                  attributes: ['id', 'price', 'quantity'],
+                  attributes: ["id", "price", "quantity"],
                 },
                 { transaction }
               )
               product.quantity -= orderItem.quantity
               if (product.quantity < 0) {
-                throw new Error('商品數量不足')
+                throw new Error("商品數量不足")
               }
               await product.save({ transaction })
               totalQuantity += orderItem.quantity
@@ -296,18 +345,18 @@ const orderController = {
         if (!order) {
           return res.status(500).json({
             ok: 0,
-            message: '找不到這筆訂單',
+            message: "找不到這筆訂單",
           })
         }
         if (
           order.clientId === decoded.payload.userId ||
           order.vendorId === decoded.payload.vendorId ||
-          decoded.payload.role === 'admin'
+          decoded.payload.role === "admin"
         ) {
           if (order.isCompleted) {
             return res.status(400).send({
               ok: 0,
-              message: '訂單已完成',
+              message: "訂單已完成",
             })
           }
           if (order) {
@@ -321,7 +370,7 @@ const orderController = {
         } else {
           return res.status(401).send({
             ok: 0,
-            message: 'Unauthorized',
+            message: "Unauthorized",
           })
         }
       } catch (err) {
@@ -351,18 +400,18 @@ const orderController = {
           if (!order) {
             return res.status(500).json({
               ok: 0,
-              message: '找不到這筆訂單',
+              message: "找不到這筆訂單",
             })
           }
           if (
             order.clientId === decoded.payload.userId ||
             order.vendorId === decoded.payload.vendorId ||
-            decoded.payload.role === 'admin'
+            decoded.payload.role === "admin"
           ) {
             if (order.isCanceledByVendor || order.isCanceledByClient) {
               return res.status(400).send({
                 ok: 0,
-                message: '訂單已被取消',
+                message: "訂單已被取消",
               })
             }
             const orderItems = await OrderItem.findAll({
@@ -390,7 +439,7 @@ const orderController = {
           } else {
             return res.status(401).send({
               ok: 0,
-              message: 'Unauthorized',
+              message: "Unauthorized",
             })
           }
           return order
@@ -415,10 +464,10 @@ const orderController = {
           message: err.toString(),
         })
       }
-      if (decoded.payload.role !== 'admin') {
+      if (decoded.payload.role !== "admin") {
         return res.status(401).json({
           ok: 0,
-          message: 'you are not authorized',
+          message: "you are not authorized",
         })
       }
       const id = req.params.id
@@ -435,7 +484,7 @@ const orderController = {
         })
         return res.status(200).json({
           ok: 1,
-          message: 'Success',
+          message: "Success",
         })
       } catch (err) {
         return res.send({
