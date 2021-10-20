@@ -2,7 +2,7 @@ const db = require("../models")
 const jwt = require("jsonwebtoken")
 const secretKey = require("../auth/secretKey")
 const { sequelize } = require("../models")
-const { Order, Product, OrderItem, Vendor } = db
+const { Order, Product, OrderItem, Vendor, User } = db
 const { Op } = require("sequelize")
 
 const orderController = {
@@ -40,6 +40,16 @@ const orderController = {
                 isCanceledByVendor: false,
                 isCanceledByClient: false,
               },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
             })
             break
           case "canceled":
@@ -59,6 +69,16 @@ const orderController = {
                   },
                 ],
               },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
             })
             break
           case "completed":
@@ -69,6 +89,16 @@ const orderController = {
               where: {
                 isCompleted: true,
               },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
             })
             break
           default:
@@ -76,6 +106,16 @@ const orderController = {
               limit: _limit,
               offset: _offset,
               order: [[_sort, _order]],
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
             })
             break
         }
@@ -161,32 +201,119 @@ const orderController = {
           message: err.toString(),
         })
       }
-      let { page, limit, sort, order } = req.query
+      let { page, limit, sort, order, status } = req.query
       const _page = Number(page) || 1
       const _limit = limit ? parseInt(limit) : 20
       const _offset = (_page - 1) * _limit
       const _sort = sort || "id"
       const _order = order || "DESC"
+      const _status = status || "all"
+
       const queriedUser = req.query.clientId
         ? req.query.clientId
         : decoded.payload.userId
       const clientId =
         decoded.payload.role === "admin" ? queriedUser : decoded.payload.userId
       try {
-        const orders = await Order.findAndCountAll({
-          where: {
-            clientId,
-          },
-          include: [
-            {
-              model: Vendor,
-              attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
-            },
-          ],
-          limit: _limit,
-          offset: _offset,
-          order: [[_sort, _order]],
-        })
+        let orders
+        switch (_status) {
+          case "uncompleted":
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                isCompleted: false,
+                isCanceledByVendor: false,
+                isCanceledByClient: false,
+                clientId,
+              },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
+            })
+            break
+          case "canceled":
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                clientId,
+
+                [Op.not]: [
+                  {
+                    [Op.and]: [
+                      { isCanceledByVendor: false },
+                      {
+                        isCanceledByClient: false,
+                      },
+                    ],
+                  },
+                ],
+              },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
+            })
+            break
+          case "completed":
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                clientId,
+
+                isCompleted: true,
+              },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
+            })
+            break
+          default:
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                clientId,
+              },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
+            })
+            break
+        }
         return res.status(200).json({
           ok: 1,
           data: orders,
@@ -207,12 +334,14 @@ const orderController = {
           message: err.toString(),
         })
       }
-      let { page, limit, sort, order } = req.query
+      let { page, limit, sort, order, status } = req.query
       const _page = Number(page) || 1
       const _limit = limit ? parseInt(limit) : 20
       const _offset = (_page - 1) * _limit
       const _sort = sort || "id"
       const _order = order || "DESC"
+      const _status = status || "all"
+
       const queriedUser = req.query.vendorId
         ? req.query.vendorId
         : decoded.payload.userId
@@ -221,20 +350,104 @@ const orderController = {
           ? queriedUser
           : decoded.payload.vendorId
       try {
-        const orders = await Order.findAndCountAll({
-          where: {
-            vendorId,
-          },
-          include: [
-            {
-              model: Vendor,
-              attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
-            },
-          ],
-          limit: _limit,
-          offset: _offset,
-          order: [[_sort, _order]],
-        })
+        let orders
+        switch (_status) {
+          case "uncompleted":
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                isCompleted: false,
+                isCanceledByVendor: false,
+                isCanceledByClient: false,
+                vendorId,
+              },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
+            })
+            break
+          case "canceled":
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                vendorId,
+                [Op.not]: [
+                  {
+                    [Op.and]: [
+                      { isCanceledByVendor: false },
+                      {
+                        isCanceledByClient: false,
+                      },
+                    ],
+                  },
+                ],
+              },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
+            })
+            break
+          case "completed":
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                isCompleted: true,
+                vendorId,
+              },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
+            })
+            break
+          default:
+            orders = await Order.findAndCountAll({
+              limit: _limit,
+              offset: _offset,
+              order: [[_sort, _order]],
+              where: {
+                vendorId,
+              },
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "username", "nickname"],
+                },
+                {
+                  model: Vendor,
+                  attributes: ["id", "vendorName", "avatarUrl", "categoryId"],
+                },
+              ],
+            })
+            break
+        }
+
         return res.status(200).json({
           ok: 1,
           data: orders,
