@@ -11,42 +11,47 @@ const album = '19dKauX';
 
 const userController = {
   getMe: (req, res, next) => {
-    if (!req.token)
-      jwt.verify(req.token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({
-            ok: 0,
-            message: err.toString(),
-          });
-        }
-        let user;
-        try {
-          user = await User.findOne({
-            where: {
-              id: decoded.payload.userId,
-            },
-            attributes: [
-              'id',
-              'nickname',
-              'username',
-              'phone',
-              'email',
-              'avatarURL',
-              'role',
-            ],
-          });
-
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
+      if (err) {
+        if (err.toString().includes('expired')) {
           return res.status(200).json({
-            ok: 1,
-            data: user,
-          });
-        } catch (err) {
-          return res.status(500).json({
             ok: 0,
-            message: err.toString(),
+            message: 'non-login',
           });
         }
-      });
+        return res.status(401).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+      let user;
+      try {
+        user = await User.findOne({
+          where: {
+            id: decoded.payload.userId,
+          },
+          attributes: [
+            'id',
+            'nickname',
+            'username',
+            'phone',
+            'email',
+            'avatarURL',
+            'role',
+          ],
+        });
+
+        return res.status(200).json({
+          ok: 1,
+          data: user,
+        });
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        });
+      }
+    });
   },
 
   getProfileById: async (req, res, next) => {
@@ -101,7 +106,6 @@ const userController = {
       }
 
       if (decoded.payload.role !== 'admin') {
-        console.log(123);
         return res.status(401).json({
           ok: 0,
           message: 'you are not authorized',
@@ -116,10 +120,10 @@ const userController = {
       }
       const sort = _sort || 'id';
       const order = _order || 'DESC';
-      const limit = _limit ? parseInt(_limit) : 10;
+      const limit = parseInt(_limit) || 10;
 
       try {
-        let users = await User.findAll({
+        let users = await User.findAndCountAll({
           where: role ? { role } : {},
           attributes: [
             'id',

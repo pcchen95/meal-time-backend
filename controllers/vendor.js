@@ -116,7 +116,7 @@ const vendorController = {
     const limit = _limit ? parseInt(_limit) : 10;
 
     try {
-      const vendors = await Vendor.findAll({
+      const vendors = await Vendor.findAndCountAll({
         where: categoryId
           ? {
               isOpen: true,
@@ -178,7 +178,7 @@ const vendorController = {
       if (isSuspended) condition.isSuspended = isSuspended === 0 ? false : true;
 
       try {
-        const vendors = await Vendor.findAll({
+        const vendors = await Vendor.findAndCountAll({
           where: condition,
           include: {
             model: VendorCategory,
