@@ -40,12 +40,13 @@ const productController = {
 
   getByVendor: async (req, res) => {
     const id = req.params.id
-    let { page, limit, sort, order } = req.query
+    let { page, limit, sort, order, category } = req.query
     const _page = Number(page) || 1
-    const _limit = limit ? parseInt(limit) : 10
+    const _limit = limit ? parseInt(limit) : null
     const _offset = (_page - 1) * _limit
     const _sort = sort || 'id'
     const _order = order || 'DESC'
+    const _category = category || null
     try {
       const procucts = await Product.findAndCountAll({
         where: {
@@ -54,6 +55,7 @@ const productController = {
           },
           isAvailable: true,
           vendorId: id,
+          ...(_category && { categoryId: _category }),
         },
         include: [
           {
@@ -64,10 +66,11 @@ const productController = {
             attributes: ['vendorName', 'avatarUrl', 'categoryId'],
           },
         ],
-        limit: _limit,
+        ...(_limit && { limit: _limit }),
         offset: _offset,
         order: [[_sort, _order]],
       })
+
       return res.status(200).json({
         ok: 1,
         data: procucts,
@@ -396,6 +399,57 @@ const productController = {
         })
       }
     })
+  },
+
+  getCartData: async (req, res) => {
+    try {
+      const cart = req.body.cart
+      const cartProductsId = []
+      cart.forEach((item) => {
+        cartProductsId.push(item.id)
+      })
+
+      const groupByVendor = (data) => {
+        const groupedData = data.reduce((groups, product) => {
+          for (let i = 0; i < cart.length; i++) {
+            if (product.id === cart[i].id) {
+              product.dataValues['cartQuantity'] = cart[i].quantity
+              console.log(product)
+            }
+          }
+          groups[product.vendorId] = groups[product.vendorId] || []
+          groups[product.vendorId].push(product)
+          return groups
+        }, {})
+        return groupedData
+      }
+      const rawCartData = await Product.findAll({
+        where: {
+          id: cartProductsId,
+        },
+        include: [
+          {
+            model: ProductCategory,
+            attributes: ['id', 'name'],
+          },
+          {
+            model: Vendor,
+            attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
+          },
+        ],
+      })
+      const cartData = groupByVendor(rawCartData)
+
+      return res.status(200).json({
+        ok: 1,
+        data: cartData,
+      })
+    } catch (err) {
+      return res.status(500).json({
+        ok: 0,
+        message: err.toString(),
+      })
+    }
   },
 }
 
