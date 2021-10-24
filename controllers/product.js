@@ -38,62 +38,20 @@ const productController = {
     }
   },
 
-  getByVendor: async (req, res) => {
-    const bearerHeader = req.headers.authorization
-    const id = req.params.id
-    let { page, limit, sort, order, category } = req.query
+  getByVendorManage: async (req, res) => {
+    const id = Number(req.params.id)
+    let { page, limit, sort, order, category, isAvailable } = req.query
     const _page = Number(page) || 1
     const _limit = limit ? parseInt(limit) : null
     const _offset = (_page - 1) * _limit
     const _sort = sort || 'id'
     const _order = order || 'DESC'
     const _category = category || null
-    if (!bearerHeader) {
-      try {
-        const procucts = await Product.findAndCountAll({
-          where: {
-            quantity: {
-              [Op.gt]: 0,
-            },
-            isAvailable: true,
-            vendorId: id,
-            ...(_category && { categoryId: _category }),
-          },
-          include: [
-            {
-              model: ProductCategory,
-            },
-            {
-              model: Vendor,
-              attributes: ['vendorName', 'avatarUrl', 'categoryId'],
-            },
-          ],
-          ...(_limit && { limit: _limit }),
-          offset: _offset,
-          order: [[_sort, _order]],
-        })
+    let _isAvailable = isAvailable || 'all'
 
-        return res.status(200).json({
-          ok: 1,
-          data: procucts,
-        })
-      } catch (err) {
-        return res.status(500).json({
-          ok: 0,
-          message: err.toString(),
-        })
-      }
-    }
+    if (isAvailable === 'true') _isAvailable = true
 
-    const bearer = bearerHeader.split(' ')
-    const bearerToken = bearer[1]
-    if (!bearerToken) {
-      return res.status(200).json({
-        ok: 0,
-        message: 'non-login',
-      })
-    }
-    req.token = bearerToken
+    if (isAvailable === 'false') _isAvailable = false
 
     jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
@@ -102,24 +60,17 @@ const productController = {
           message: err.toString(),
         })
       }
-      const userId = decoded.payload.userId
-      try {
-        const userVendor = await Vendor.findOne({
-          where: {
-            userId,
-          },
+      if (decoded.payload.vendorId !== id) {
+        return res.status(401).json({
+          ok: 0,
+          message: 'you are not authorized',
         })
-        let isVendor = false
-        if (userVendor) {
-          isVendor = userVendor.id === Number(id)
-        }
-
+      }
+      try {
         const procucts = await Product.findAndCountAll({
           where: {
-            quantity: {
-              [Op.gt]: 0,
-            },
-            ...(!isVendor && { isAvailable: true }),
+            ...(_isAvailable !== 'all' &&
+              (_isAvailable ? { isAvailable: true } : { isAvailable: false })),
             vendorId: id,
             ...(_category && { categoryId: _category }),
           },
@@ -150,6 +101,48 @@ const productController = {
     })
   },
 
+  getByVendor: async (req, res) => {
+    const id = req.params.id
+    let { page, limit, sort, order, category } = req.query
+    const _page = Number(page) || 1
+    const _limit = limit ? parseInt(limit) : null
+    const _offset = (_page - 1) * _limit
+    const _sort = sort || 'id'
+    const _order = order || 'DESC'
+    const _category = category || null
+    try {
+      const procucts = await Product.findAndCountAll({
+        where: {
+          isAvailable: true,
+          vendorId: id,
+          ...(_category && { categoryId: _category }),
+        },
+        include: [
+          {
+            model: ProductCategory,
+          },
+          {
+            model: Vendor,
+            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
+          },
+        ],
+        ...(_limit && { limit: _limit }),
+        offset: _offset,
+        order: [[_sort, _order]],
+      })
+
+      return res.status(200).json({
+        ok: 1,
+        data: procucts,
+      })
+    } catch (err) {
+      return res.status(500).json({
+        ok: 0,
+        message: err.toString(),
+      })
+    }
+  },
+
   getByCategory: async (req, res) => {
     const id = req.params.id
     let { page, limit, sort, order } = req.query
@@ -161,9 +154,6 @@ const productController = {
     try {
       const procucts = await Product.findAndCountAll({
         where: {
-          quantity: {
-            [Op.gt]: 0,
-          },
           isAvailable: true,
           categoryId: id,
         },
@@ -202,9 +192,6 @@ const productController = {
     try {
       const products = await Product.findAndCountAll({
         where: {
-          quantity: {
-            [Op.gt]: 0,
-          },
           isAvailable: true,
         },
         include: [
@@ -252,9 +239,6 @@ const productController = {
       )
       const products = await Product.findAndCountAll({
         where: {
-          quantity: {
-            [Op.gt]: 0,
-          },
           isAvailable: true,
           [Op.or]: [
             {
