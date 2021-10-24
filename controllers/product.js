@@ -3,7 +3,7 @@ const db = require('../models')
 const { uploadImg, deleteImg } = require('./imgur.js')
 const jwt = require('jsonwebtoken')
 const secretKey = require('../auth/secretKey')
-const { Product, ProductCategory, Vendor, VendorCategory } = db
+const { Product, ProductCategory, Vendor, VendorCategory, User } = db
 const album = 'gpxFA0k'
 
 const productController = {
@@ -39,6 +39,7 @@ const productController = {
   },
 
   getByVendor: async (req, res) => {
+    const bearerHeader = req.headers.authorization
     const id = req.params.id
     let { page, limit, sort, order, category } = req.query
     const _page = Number(page) || 1
@@ -47,40 +48,106 @@ const productController = {
     const _sort = sort || 'id'
     const _order = order || 'DESC'
     const _category = category || null
-    try {
-      const procucts = await Product.findAndCountAll({
-        where: {
-          quantity: {
-            [Op.gt]: 0,
+    if (!bearerHeader) {
+      try {
+        const procucts = await Product.findAndCountAll({
+          where: {
+            quantity: {
+              [Op.gt]: 0,
+            },
+            isAvailable: true,
+            vendorId: id,
+            ...(_category && { categoryId: _category }),
           },
-          isAvailable: true,
-          vendorId: id,
-          ...(_category && { categoryId: _category }),
-        },
-        include: [
-          {
-            model: ProductCategory,
-          },
-          {
-            model: Vendor,
-            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
-          },
-        ],
-        ...(_limit && { limit: _limit }),
-        offset: _offset,
-        order: [[_sort, _order]],
-      })
+          include: [
+            {
+              model: ProductCategory,
+            },
+            {
+              model: Vendor,
+              attributes: ['vendorName', 'avatarUrl', 'categoryId'],
+            },
+          ],
+          ...(_limit && { limit: _limit }),
+          offset: _offset,
+          order: [[_sort, _order]],
+        })
 
+        return res.status(200).json({
+          ok: 1,
+          data: procucts,
+        })
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        })
+      }
+    }
+
+    const bearer = bearerHeader.split(' ')
+    const bearerToken = bearer[1]
+    if (!bearerToken) {
       return res.status(200).json({
-        ok: 1,
-        data: procucts,
-      })
-    } catch (err) {
-      return res.status(500).json({
         ok: 0,
-        message: err.toString(),
+        message: 'non-login',
       })
     }
+    req.token = bearerToken
+
+    jwt.verify(req.token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        })
+      }
+      const userId = decoded.payload.userId
+      try {
+        const userVendor = await Vendor.findOne({
+          where: {
+            userId,
+          },
+        })
+        let isVendor = false
+        if (userVendor) {
+          isVendor = userVendor.id === Number(id)
+        }
+
+        const procucts = await Product.findAndCountAll({
+          where: {
+            quantity: {
+              [Op.gt]: 0,
+            },
+            ...(!isVendor && { isAvailable: true }),
+            vendorId: id,
+            ...(_category && { categoryId: _category }),
+          },
+          include: [
+            {
+              model: ProductCategory,
+            },
+            {
+              model: Vendor,
+              attributes: ['vendorName', 'avatarUrl', 'categoryId'],
+            },
+          ],
+          ...(_limit && { limit: _limit }),
+          offset: _offset,
+          order: [[_sort, _order]],
+        })
+
+        return res.status(200).json({
+          ok: 1,
+          data: procucts,
+        })
+      } catch (err) {
+        return res.status(500).json({
+          ok: 0,
+          message: err.toString(),
+        })
+      }
+    })
   },
 
   getByCategory: async (req, res) => {
@@ -414,7 +481,6 @@ const productController = {
           for (let i = 0; i < cart.length; i++) {
             if (product.id === cart[i].id) {
               product.dataValues['cartQuantity'] = cart[i].quantity
-              console.log(product)
             }
           }
           groups[product.vendorId] = groups[product.vendorId] || []
