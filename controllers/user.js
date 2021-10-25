@@ -563,8 +563,13 @@ const userController = {
           message: err.toString(),
         });
       }
+      let newRole;
+      if (user.role === 'suspended') {
+        newRole = user.vendorId ? 'vendor' : 'member';
+      } else {
+        newRole = 'suspended';
+      }
 
-      const newRole = user.role === 'suspended' ? 'member' : 'suspended';
       try {
         await user.update({
           role: newRole,
