@@ -47,11 +47,15 @@ const vendorController = {
         where: {
           id: req.params.id,
           isSuspended: false,
+          '$User.role$': 'vendor',
         },
-        include: {
-          model: VendorCategory,
-          attributes: ['name'],
-        },
+        include: [
+          {
+            model: VendorCategory,
+            attributes: ['name'],
+          },
+          { model: User, attributes: ['role'] },
+        ],
       });
 
       return res.status(200).json({
