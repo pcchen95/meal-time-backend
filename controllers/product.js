@@ -3,7 +3,7 @@ const db = require('../models')
 const { uploadImg, deleteImg } = require('./imgur.js')
 const jwt = require('jsonwebtoken')
 const secretKey = require('../auth/secretKey')
-const { Product, ProductCategory, Vendor, VendorCategory, User } = db
+const { Product, ProductCategory, Vendor, VendorCategory } = db
 const album = 'gpxFA0k'
 
 const productController = {
@@ -103,19 +103,29 @@ const productController = {
 
   getByVendor: async (req, res) => {
     const id = req.params.id
-    let { page, limit, sort, order, category } = req.query
+    let { page, limit, sort, order, category, notSupplied } = req.query
     const _page = Number(page) || 1
     const _limit = limit ? parseInt(limit) : null
     const _offset = (_page - 1) * _limit
     const _sort = sort || 'id'
     const _order = order || 'DESC'
     const _category = category || null
+    const _notSupplied = Boolean(notSupplied) || false
+    const now = new Date()
+    now.setHours(0)
+    now.setMinutes(0)
+    now.setSeconds(0)
+    const today = now.getTime()
     try {
       const procucts = await Product.findAndCountAll({
         where: {
           isAvailable: true,
           vendorId: id,
           ...(_category && { categoryId: _category }),
+          ...(!_notSupplied && { quantity: { [Op.gt]: 0 } }),
+          ...(!_notSupplied && {
+            expiryDate: { [Op.gte]: new Date(today) },
+          }),
         },
         include: [
           {
@@ -145,17 +155,27 @@ const productController = {
 
   getByCategory: async (req, res) => {
     const id = req.params.id
-    let { page, limit, sort, order } = req.query
+    let { page, limit, sort, order, notSupplied } = req.query
     const _page = Number(page) || 1
     const _limit = limit ? parseInt(limit) : 10
     const _offset = (_page - 1) * _limit
     const _sort = sort || 'id'
     const _order = order || 'DESC'
+    const _notSupplied = Boolean(notSupplied) || false
+    const now = new Date()
+    now.setHours(0)
+    now.setMinutes(0)
+    now.setSeconds(0)
+    const today = now.getTime()
     try {
       const procucts = await Product.findAndCountAll({
         where: {
           isAvailable: true,
           categoryId: id,
+          ...(!_notSupplied && { quantity: { [Op.gt]: 0 } }),
+          ...(!_notSupplied && {
+            expiryDate: { [Op.gte]: new Date(today) },
+          }),
         },
         include: [
           {
@@ -183,16 +203,26 @@ const productController = {
   },
 
   getAllInfo: async (req, res) => {
-    let { page, limit, sort, order } = req.query
+    let { page, limit, sort, order, notSupplied } = req.query
     const _page = Number(page) || 1
     const _limit = limit ? parseInt(limit) : 10
     const _offset = (_page - 1) * _limit
     const _sort = sort || 'id'
     const _order = order || 'DESC'
+    const _notSupplied = Boolean(notSupplied) || false
+    const now = new Date()
+    now.setHours(0)
+    now.setMinutes(0)
+    now.setSeconds(0)
+    const today = now.getTime()
     try {
       const products = await Product.findAndCountAll({
         where: {
           isAvailable: true,
+          ...(!_notSupplied && { quantity: { [Op.gt]: 0 } }),
+          ...(!_notSupplied && {
+            expiryDate: { [Op.gte]: new Date(today) },
+          }),
         },
         include: [
           {
@@ -220,12 +250,18 @@ const productController = {
   },
 
   searchByKeyword: async (req, res) => {
-    let { page, limit, sort, order, keyword } = req.query
+    let { page, limit, sort, order, keyword, notSupplied } = req.query
     const _page = Number(page) || 1
     const _limit = limit ? parseInt(limit) : 10
     const _offset = (_page - 1) * _limit
     const _sort = sort || 'id'
     const _order = order || 'DESC'
+    const _notSupplied = Boolean(notSupplied) || false
+    const now = new Date()
+    now.setHours(0)
+    now.setMinutes(0)
+    now.setSeconds(0)
+    const today = now.getTime()
     try {
       const productCategories = await ProductCategory.findAll({
         where: {
@@ -240,6 +276,10 @@ const productController = {
       const products = await Product.findAndCountAll({
         where: {
           isAvailable: true,
+          ...(!_notSupplied && { quantity: { [Op.gt]: 0 } }),
+          ...(!_notSupplied && {
+            expiryDate: { [Op.gte]: new Date(today) },
+          }),
           [Op.or]: [
             {
               name: {
