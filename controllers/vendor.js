@@ -126,15 +126,20 @@ const vendorController = {
               isOpen: true,
               isSuspended: false,
               categoryId,
+              '$User.role$': 'vendor',
             }
           : {
               isOpen: true,
               isSuspended: false,
+              '$User.role$': 'vendor',
             },
-        include: {
-          model: VendorCategory,
-          attributes: ['name'],
-        },
+        include: [
+          {
+            model: VendorCategory,
+            attributes: ['name'],
+          },
+          { model: User, attributes: ['role'] },
+        ],
         limit,
         offset,
         order: [[sort, order]],
@@ -184,10 +189,13 @@ const vendorController = {
       try {
         const vendors = await Vendor.findAndCountAll({
           where: condition,
-          include: {
-            model: VendorCategory,
-            attributes: ['name'],
-          },
+          include: [
+            {
+              model: VendorCategory,
+              attributes: ['name'],
+            },
+            { model: User, attributes: ['role'] },
+          ],
           limit,
           offset,
           order: [[sort, order]],
