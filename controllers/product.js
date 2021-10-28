@@ -3,7 +3,7 @@ const db = require('../models')
 const { uploadImg, deleteImg } = require('./imgur.js')
 const jwt = require('jsonwebtoken')
 const secretKey = require('../auth/secretKey')
-const { Product, ProductCategory, Vendor, VendorCategory } = db
+const { Product, ProductCategory, Vendor, VendorCategory, User } = db
 const album = 'gpxFA0k'
 
 const productController = {
@@ -21,8 +21,22 @@ const productController = {
           },
           {
             model: Vendor,
-            attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
-            include: [{ model: VendorCategory, attributes: ['id', 'name'] }],
+            attributes: [
+              'id',
+              'vendorName',
+              'avatarUrl',
+              'categoryId',
+              'isSuspended',
+            ],
+            where: { isSuspended: false },
+            include: [
+              { model: VendorCategory, attributes: ['id', 'name'] },
+              {
+                model: User,
+                attributes: ['id', 'role'],
+                where: { [Op.not]: [{ role: 'suspended' }] },
+              },
+            ],
           },
         ],
       })
@@ -40,34 +54,19 @@ const productController = {
 
   getByVendorManage: async (req, res) => {
     const id = Number(req.params.id)
-    let {
-      page,
-      limit,
-      sort,
-      order,
-      category,
-      isAvailable,
-      hideExpiry,
-      hideSoldOut,
-    } = req.query
+    let { page, limit, sort, order, category, filter } = req.query
     const _page = Number(page) || 1
     const _limit = limit ? parseInt(limit) : null
     const _offset = (_page - 1) * _limit
     const _sort = sort || 'id'
     const _order = order || 'DESC'
     const _category = category || null
-    let _isAvailable = isAvailable || 'all'
-    const _hideExpiry = Boolean(hideExpiry) || false
-    const _hideSoldOut = Boolean(hideSoldOut) || false
+    const _filter = filter || 'all'
     const now = new Date()
     now.setHours(0)
     now.setMinutes(0)
     now.setSeconds(0)
     const today = now.getTime()
-
-    if (isAvailable === 'true') _isAvailable = true
-
-    if (isAvailable === 'false') _isAvailable = false
 
     jwt.verify(req.token, secretKey, async (err, decoded) => {
       if (err) {
@@ -85,14 +84,18 @@ const productController = {
       try {
         const procucts = await Product.findAndCountAll({
           where: {
-            ...(_isAvailable !== 'all' &&
-              (_isAvailable ? { isAvailable: true } : { isAvailable: false })),
             vendorId: id,
             ...(_category && { categoryId: _category }),
-            ...(_hideSoldOut && { quantity: { [Op.gt]: 0 } }),
-            ...(_hideExpiry && {
+            ...(_filter === 'available' && {
+              isAvailable: true,
               expiryDate: { [Op.gte]: new Date(today) },
+              quantity: { [Op.gt]: 0 },
             }),
+            ...(_filter === 'unavailable' && { isAvailable: false }),
+            ...(_filter === 'expiry' && {
+              expiryDate: { [Op.lt]: new Date(today) },
+            }),
+            ...(_filter === 'soldOut' && { quantity: 0 }),
           },
           include: [
             {
@@ -100,7 +103,21 @@ const productController = {
             },
             {
               model: Vendor,
-              attributes: ['vendorName', 'avatarUrl', 'categoryId'],
+              attributes: [
+                'id',
+                'vendorName',
+                'avatarUrl',
+                'categoryId',
+                'isSuspended',
+              ],
+              where: { isSuspended: false },
+              include: [
+                {
+                  model: User,
+                  attributes: ['id', 'role'],
+                  where: { [Op.not]: [{ role: 'suspended' }] },
+                },
+              ],
             },
           ],
           ...(_limit && { limit: _limit }),
@@ -153,7 +170,21 @@ const productController = {
           },
           {
             model: Vendor,
-            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
+            attributes: [
+              'id',
+              'vendorName',
+              'avatarUrl',
+              'categoryId',
+              'isSuspended',
+            ],
+            where: { isSuspended: false },
+            include: [
+              {
+                model: User,
+                attributes: ['id', 'role'],
+                where: { [Op.not]: [{ role: 'suspended' }] },
+              },
+            ],
           },
         ],
         ...(_limit && { limit: _limit }),
@@ -203,7 +234,21 @@ const productController = {
           },
           {
             model: Vendor,
-            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
+            attributes: [
+              'id',
+              'vendorName',
+              'avatarUrl',
+              'categoryId',
+              'isSuspended',
+            ],
+            where: { isSuspended: false },
+            include: [
+              {
+                model: User,
+                attributes: ['id', 'role'],
+                where: { [Op.not]: [{ role: 'suspended' }] },
+              },
+            ],
           },
         ],
         limit: _limit,
@@ -250,7 +295,21 @@ const productController = {
           },
           {
             model: Vendor,
-            attributes: ['vendorName', 'avatarUrl', 'categoryId'],
+            attributes: [
+              'id',
+              'vendorName',
+              'avatarUrl',
+              'categoryId',
+              'isSuspended',
+            ],
+            where: { isSuspended: false },
+            include: [
+              {
+                model: User,
+                attributes: ['id', 'role'],
+                where: { [Op.not]: [{ role: 'suspended' }] },
+              },
+            ],
           },
         ],
         limit: _limit,
@@ -324,7 +383,21 @@ const productController = {
           },
           {
             model: Vendor,
-            attributes: ['id', 'vendorName', 'avatarUrl', 'categoryId'],
+            attributes: [
+              'id',
+              'vendorName',
+              'avatarUrl',
+              'categoryId',
+              'isSuspended',
+            ],
+            where: { isSuspended: false },
+            include: [
+              {
+                model: User,
+                attributes: ['id', 'role'],
+                where: { [Op.not]: [{ role: 'suspended' }] },
+              },
+            ],
           },
         ],
         limit: _limit,
