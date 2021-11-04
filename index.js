@@ -192,7 +192,14 @@ app.delete('/faq-category/:id', ensureToken, faqController.deleteFaqCategory);
 
 app.get('/products', productController.getAllInfo);
 app.get('/products/search', productController.searchByKeyword);
+app.get(
+  '/products/vendor/manage/:id',
+  ensureToken,
+  productController.getByVendorManage
+);
+
 app.get('/products/vendor/:id', productController.getByVendor);
+
 app.get('/products/category/:id', productController.getByCategory);
 app.get('/products/:id', productController.getInfo);
 app.post(
@@ -208,6 +215,8 @@ app.patch(
   productController.updateProduct
 );
 app.delete('/products/:id', ensureToken, productController.deleteProduct);
+
+app.post('/cart', productController.getCartData);
 
 app.get('/products-categories', productCategoryController.getAll);
 app.post(
