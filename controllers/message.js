@@ -20,6 +20,14 @@ const messageController = {
             clientId: decoded.payload.userId,
             vendorId: req.params.id,
           },
+          include: {
+            model: Vendor,
+            attributes: ['vendorName', 'avatarUrl', 'isSuspended'],
+            include: {
+              model: User,
+              attributes: ['username', 'role'],
+            },
+          },
         });
 
         return res.status(200).json({
@@ -58,6 +66,14 @@ const messageController = {
         const messages = await Message.findAll({
           where: {
             clientId: decoded.payload.userId,
+          },
+          include: {
+            model: Vendor,
+            attributes: ['vendorName', 'avatarUrl', 'isSuspended'],
+            include: {
+              model: User,
+              attributes: ['username', 'role'],
+            },
           },
           limit,
           offset,
@@ -105,16 +121,17 @@ const messageController = {
           try {
             content = [{ client: [content] }];
             const jsonContent = JSON.stringify(content);
-            const newMessage = await Message.create({
+            const response = await Message.create({
               clientId: decoded.payload.userId,
               vendorId: req.params.id,
               content: jsonContent,
+              returning: true,
             });
 
-            if (newMessage) {
+            if (response) {
               return res.status(200).json({
                 ok: 1,
-                message: 'Success',
+                data: response,
               });
             }
           } catch (err) {
@@ -136,14 +153,15 @@ const messageController = {
               });
             }
             const jsonContent = JSON.stringify(originMessage);
-            const newMessage = await message.update({
+            const response = await message.update({
               content: jsonContent,
+              returning: true,
             });
 
-            if (newMessage) {
+            if (response) {
               return res.status(200).json({
                 ok: 1,
-                message: 'Success',
+                data: response,
               });
             }
           } catch (err) {
@@ -176,6 +194,10 @@ const messageController = {
           where: {
             clientId: req.params.id,
             vendorId: decoded.payload.vendorId,
+          },
+          include: {
+            model: User,
+            attributes: ['username', 'nickname', 'avatarURL', 'role'],
           },
         });
 
@@ -222,6 +244,10 @@ const messageController = {
         const messages = await Message.findAll({
           where: {
             vendorId: decoded.payload.vendorId,
+          },
+          include: {
+            model: User,
+            attributes: ['username', 'nickname', 'avatarURL', 'role'],
           },
           limit,
           offset,
@@ -283,14 +309,15 @@ const messageController = {
             });
           }
           const jsonContent = JSON.stringify(originMessage);
-          const newMessage = await message.update({
+          const response = await message.update({
             content: jsonContent,
+            returning: true,
           });
 
-          if (newMessage) {
+          if (response) {
             return res.status(200).json({
               ok: 1,
-              message: 'Success',
+              data: response,
             });
           }
         } catch (err) {
@@ -364,15 +391,16 @@ const messageController = {
           try {
             content = [{ user: [content] }];
             const jsonContent = JSON.stringify(content);
-            const newMessage = await MessageToAdmin.create({
+            const response = await MessageToAdmin.create({
               userId: decoded.payload.userId,
               content: jsonContent,
+              returning: true,
             });
 
-            if (newMessage) {
+            if (response) {
               return res.status(200).json({
                 ok: 1,
-                message: 'Success',
+                data: response,
               });
             }
           } catch (err) {
@@ -394,14 +422,15 @@ const messageController = {
               });
             }
             const jsonContent = JSON.stringify(originMessage);
-            const newMessage = await message.update({
+            const response = await message.update({
               content: jsonContent,
+              returning: true,
             });
 
-            if (newMessage) {
+            if (response) {
               return res.status(200).json({
                 ok: 1,
-                message: 'Success',
+                data: response,
               });
             }
           } catch (err) {
@@ -440,6 +469,10 @@ const messageController = {
         const message = await MessageToAdmin.findOne({
           where: {
             userId: req.params.id,
+          },
+          include: {
+            model: User,
+            attributes: ['username', 'nickname', 'avatarURL', 'role'],
           },
         });
 
@@ -491,6 +524,10 @@ const messageController = {
 
       try {
         const messages = await MessageToAdmin.findAll({
+          include: {
+            model: User,
+            attributes: ['username', 'nickname', 'avatarURL', 'role'],
+          },
           limit,
           offset,
           order: [[sort, order]],
@@ -543,15 +580,16 @@ const messageController = {
           try {
             content = [{ admin: [content] }];
             const jsonContent = JSON.stringify(content);
-            const newMessage = await MessageToAdmin.create({
+            const response = await MessageToAdmin.create({
               userId: req.params.id,
               content: jsonContent,
+              returning: true,
             });
 
-            if (newMessage) {
+            if (response) {
               return res.status(200).json({
                 ok: 1,
-                message: 'Success',
+                data: response,
               });
             }
           } catch (err) {
@@ -573,14 +611,15 @@ const messageController = {
               });
             }
             const jsonContent = JSON.stringify(originMessage);
-            const newMessage = await message.update({
+            const response = await message.update({
               content: jsonContent,
+              returning: true,
             });
 
-            if (newMessage) {
+            if (response) {
               return res.status(200).json({
                 ok: 1,
-                message: 'Success',
+                data: response,
               });
             }
           } catch (err) {
