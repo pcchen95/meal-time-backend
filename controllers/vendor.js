@@ -54,7 +54,7 @@ const vendorController = {
             model: VendorCategory,
             attributes: ['name'],
           },
-          { model: User, attributes: ['role'] },
+          { model: User, attributes: ['username', 'role'] },
         ],
       });
 
@@ -138,7 +138,7 @@ const vendorController = {
             model: VendorCategory,
             attributes: ['name'],
           },
-          { model: User, attributes: ['role'] },
+          { model: User, attributes: ['username', 'role'] },
         ],
         limit,
         offset,
@@ -238,7 +238,7 @@ const vendorController = {
         openingHour,
       } = req.body;
 
-      if (!vendorName || !address || latlng || !phone || !openingHour) {
+      if (!vendorName || !address || !latlng || !phone || !openingHour) {
         return res.status(400).json({
           ok: 0,
           message: 'All fields are required.',
@@ -259,7 +259,6 @@ const vendorController = {
       const avatar = req.files['avatar'] ? req.files['avatar'][0] : null;
       const banner = req.files['banner'] ? req.files['banner'][0] : null;
 
-      let vendor;
       const { lat, lng } = JSON.parse(latlng);
       params.position = {
         type: 'Point',
@@ -289,9 +288,40 @@ const vendorController = {
             const { avatar, banner } = links;
             params.avatarUrl = avatar;
             params.bannerUrl = banner;
-
+            let vendor;
             try {
               vendor = await Vendor.create(params);
+            } catch (err) {
+              return res.status(500).json({
+                ok: 0,
+                message: err.toString(),
+              });
+            }
+            try {
+              const user = await User.findOne({
+                where: {
+                  id: decoded.payload.userId,
+                },
+              });
+              const response = await user.update({
+                role: 'vendor',
+                vendorId: vendor.id,
+              });
+
+              if (response) {
+                decoded.payload.vendorId = vendor.id;
+                const token = jwt.sign(
+                  {
+                    payload: decoded.payload,
+                    exp: decoded.exp,
+                  },
+                  secretKey
+                );
+                return res.status(200).json({
+                  ok: 1,
+                  token,
+                });
+              }
             } catch (err) {
               return res.status(500).json({
                 ok: 0,
@@ -301,6 +331,7 @@ const vendorController = {
           }
         );
       } else {
+        let vendor;
         try {
           vendor = await Vendor.create(params);
         } catch (err) {
@@ -309,38 +340,38 @@ const vendorController = {
             message: err.toString(),
           });
         }
-      }
 
-      try {
-        const user = await User.findOne({
-          where: {
-            id: decoded.payload.userId,
-          },
-        });
-        const response = await user.update({
-          role: 'vendor',
-          vendorId: vendor.id,
-        });
-
-        if (response) {
-          decoded.payload.vendorId = vendor.id;
-          const token = jwt.sign(
-            {
-              payload: decoded.payload,
-              exp: decoded.exp,
+        try {
+          const user = await User.findOne({
+            where: {
+              id: decoded.payload.userId,
             },
-            secretKey
-          );
-          return res.status(200).json({
-            ok: 1,
-            token,
+          });
+          const response = await user.update({
+            role: 'vendor',
+            vendorId: vendor.id,
+          });
+
+          if (response) {
+            decoded.payload.vendorId = vendor.id;
+            const token = jwt.sign(
+              {
+                payload: decoded.payload,
+                exp: decoded.exp,
+              },
+              secretKey
+            );
+            return res.status(200).json({
+              ok: 1,
+              token,
+            });
+          }
+        } catch (err) {
+          return res.status(500).json({
+            ok: 0,
+            message: err.toString(),
           });
         }
-      } catch (err) {
-        return res.status(500).json({
-          ok: 0,
-          message: err.toString(),
-        });
       }
     });
   },

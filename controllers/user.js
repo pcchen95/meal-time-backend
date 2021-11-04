@@ -38,6 +38,7 @@ const userController = {
             'email',
             'avatarURL',
             'role',
+            'vendorId',
           ],
         });
 
@@ -120,7 +121,7 @@ const userController = {
       }
       const sort = _sort || 'id';
       const order = _order || 'DESC';
-      const limit = parseInt(_limit) || 10;
+      const limit = _limit ? parseInt(limit) : null;
 
       try {
         let users = await User.findAndCountAll({
@@ -134,7 +135,7 @@ const userController = {
             'avatarURL',
             'role',
           ],
-          limit,
+          ...(_limit && { limit: _limit }),
           offset,
           order: [[sort, order]],
         });
@@ -563,6 +564,14 @@ const userController = {
           message: err.toString(),
         });
       }
+
+      if (user.role === 'admin') {
+        return res.status(500).json({
+          ok: 0,
+          message: 'Cannot suspend administrator',
+        });
+      }
+
       let newRole;
       if (user.role === 'suspended') {
         newRole = user.vendorId ? 'vendor' : 'member';

@@ -116,8 +116,8 @@ app.delete(
 );
 
 /* Message */
-app.get('/messages', ensureToken, messageController.getAllClientMessages);
-app.get('/messages/:id', ensureToken, messageController.getClientMessage);
+app.get('/messages/user', ensureToken, messageController.getAllClientMessages);
+app.get('/messages/user/:id', ensureToken, messageController.getClientMessage);
 app.get(
   '/messages/vendor',
   ensureToken,
@@ -128,7 +128,7 @@ app.get(
   ensureToken,
   messageController.getVendorMessage
 );
-app.post('/messages/:id', ensureToken, messageController.messageToVendor);
+app.post('/messages/user/:id', ensureToken, messageController.messageToVendor);
 app.post(
   '/messages/vendor/:id',
   ensureToken,
