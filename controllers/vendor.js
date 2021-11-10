@@ -117,7 +117,7 @@ const vendorController = {
     }
     const sort = _sort || 'id';
     const order = _order || 'DESC';
-    const limit = _limit ? parseInt(_limit) : 10;
+    const limit = _limit ? parseInt(limit) : null;
 
     try {
       const vendors = await Vendor.findAndCountAll({
@@ -140,7 +140,7 @@ const vendorController = {
           },
           { model: User, attributes: ['username', 'role'] },
         ],
-        limit,
+        ...(_limit && { limit: _limit }),
         offset,
         order: [[sort, order]],
       });

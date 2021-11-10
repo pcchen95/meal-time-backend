@@ -14,7 +14,7 @@ const faqController = {
     }
     const sort = _sort || 'id';
     const order = _order || 'DESC';
-    const limit = _limit ? parseInt(_limit) : 10;
+    const limit = _limit ? parseInt(limit) : null;
 
     try {
       const faqs = await Faq.findAll({
@@ -24,7 +24,7 @@ const faqController = {
           attributes: ['name'],
         },
         attributes: ['id', 'question', 'categoryId', 'answer'],
-        limit,
+        ...(_limit && { limit: _limit }),
         offset,
         order: [[sort, order]],
       });
