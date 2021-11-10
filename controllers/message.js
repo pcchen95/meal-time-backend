@@ -60,7 +60,7 @@ const messageController = {
       }
       const sort = _sort || 'updatedAt';
       const order = _order || 'DESC';
-      const limit = _limit ? parseInt(_limit) : 10;
+      const limit = _limit ? parseInt(limit) : null;
 
       try {
         const messages = await Message.findAll({
@@ -75,7 +75,7 @@ const messageController = {
               attributes: ['username', 'role'],
             },
           },
-          limit,
+          ...(_limit && { limit: _limit }),
           offset,
           order: [[sort, order]],
         });
@@ -238,7 +238,7 @@ const messageController = {
       }
       const sort = _sort || 'updatedAt';
       const order = _order || 'DESC';
-      const limit = _limit ? parseInt(_limit) : 10;
+      const limit = _limit ? parseInt(_limit) : null;
 
       try {
         const messages = await Message.findAll({
@@ -249,7 +249,7 @@ const messageController = {
             model: User,
             attributes: ['username', 'nickname', 'avatarURL', 'role'],
           },
-          limit,
+          ...(_limit && { limit: _limit }),
           offset,
           order: [[sort, order]],
         });
@@ -520,7 +520,7 @@ const messageController = {
       }
       const sort = _sort || 'updatedAt';
       const order = _order || 'DESC';
-      const limit = _limit ? parseInt(_limit) : 10;
+      const limit = _limit ? parseInt(_limit) : null;
 
       try {
         const messages = await MessageToAdmin.findAll({
@@ -528,7 +528,7 @@ const messageController = {
             model: User,
             attributes: ['username', 'nickname', 'avatarURL', 'role'],
           },
-          limit,
+          ...(_limit && { limit: _limit }),
           offset,
           order: [[sort, order]],
         });
