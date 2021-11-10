@@ -20,7 +20,6 @@
 
 ### 第三方 API
 * Imgur API：上傳圖床
-* Google Maps API：地址經緯度定位
 
 ## 建置
 1. 新增 `config/config.json`，格式為：
@@ -56,14 +55,9 @@ const secretKey = 'your_key'
 module.exports = secretKey
 ```
 
-3. 申請 google map api，啟用 Geocoding API，取得 api key，並新增 `apiKey/key.js`，格式為：
-```javascript=
-module.exports = { googleApiKey: 'your google map api key' }
-```
+3. `npm install`
 
-4. `npm install`
-
-5.  執行 Sequelize migration `npx sequelize-cli db:migrate`
+4.  執行 Sequelize migration `npx sequelize-cli db:migrate`
 
 ## 開發
 ```bash
@@ -85,7 +79,6 @@ yarn start
 ├─ auth
 │  └─ ensureToken.js
 ├─ controllers
-│  ├─ address.js
 │  ├─ faq.js
 │  ├─ imgur.js
 │  ├─ message.js
